@@ -31,17 +31,96 @@ Sistema end-to-end de marketing y ventas con IA. 4 bases de datos especializadas
 | **PromptCrm** | SQL Server | 500K clientes + X.509 + LinkServer | ⏳ |
 | **PromptSales** | PostgreSQL | SSO + ETL deltas | ⏳ |
 
-## 📁 Estructura
+# 📁 Estructura del Proyecto
+
 ```
 PromptSales/
-├── databases/      # Esquemas y scripts por BD
-├── kubernetes/     # Deployment YAML
-├── mcp-servers/    # 2 tools mínimo por BD
-├── etl/           # Visual (Pentaho/NiFi)
-├── scripts/       # Llenado algorítmico
-├── docs/          # AI_LOG.md obligatorio
-└── tests/         # Deadlocks, performance
+├── README.md                          # Documentación principal del proyecto
+├── .gitignore                         # Archivos ignorados por Git
+├── docker-compose.yml                 # Configuración de contenedores Docker
+├── kubernetes/                        # Archivos de despliegue en Kubernetes
+│   ├── mongodb-deployment.yaml       # Configuración para desplegar MongoDB
+│   ├── sqlserver-ads-deployment.yaml # Configuración para desplegar SQL Server (Ads)
+│   ├── sqlserver-crm-deployment.yaml # Configuración para desplegar SQL Server (CRM)
+│   ├── postgresql-deployment.yaml    # Configuración para desplegar PostgreSQL
+│   └── redis-deployment.yaml          # Configuración para desplegar Redis
+├── database/                          # Bases de datos del sistema
+│   ├── mongodb/                      # Base de datos PromptContent
+│   │   ├── design/                   # Diseño y esquemas de colecciones
+│   │   ├── scripts/                  # Scripts de llenado y mantenimiento
+│   │   └── mcp/                      # Servidores MCP para MongoDB
+│   ├── sqlserver_ads/                # Base de datos PromptAds
+│   │   ├── schema/                   # Esquema de tablas y relaciones
+│   │   ├── procedures/               # Procedimientos almacenados
+│   │   └── scripts/                  # Scripts de llenado (1000 campañas)
+│   ├── sqlserver_crm/                # Base de datos PromptCRM
+│   │   ├── schema/                   # Esquema de tablas y relaciones
+│   │   ├── security/                 # Configuración de cifrado X.509
+│   │   ├── procedures/               # Procedimientos almacenados
+│   │   └── scripts/                  # Scripts de llenado (500k clientes)
+│   ├── postgresql/                   # Base de datos PromptSales (centralizada)
+│   │   ├── schema/                   # Esquema de tablas centralizadas
+│   │   ├── etl/                      # Configuración de ETL y deltas
+│   │   └── mcp/                      # Servidor MCP para consultas
+│   └── redis/                        # Base de datos caché
+│       ├── design/                   # Diseño de llaves y TTLs
+│       └── config/                   # Configuración de Redis
+├── etl/                              # Pipelines de extracción y transformación
+│   ├── pentaho/                     # Configuración de Pentaho (herramienta visual)
+│   └── documentation/                # Documentación del proceso ETL
+├── mcp_servers/                      # Servidores de Model Context Protocol
+│   ├── content_generator/           # MCP para generación de contenido
+│   ├── ads_optimizer/                # MCP para optimización de anuncios
+│   ├── crm_analyzer/                 # MCP para análisis de CRM
+│   └── sales_dashboard/              # MCP para dashboard de ventas
+├── documentation/                    # Documentación del proyecto
+│   ├── AI_USAGE_LOG.md             # Bitácora obligatoria de uso de IA
+│   ├── DESIGN_DECISIONS.md         # Decisiones de diseño tomadas
+│   └── API_DOCUMENTATION.md        # Documentación de APIs externas
+└── tests/                           # Pruebas del sistema
+    ├── deadlock_tests/              # Pruebas de interbloqueo (3 niveles)
+    ├── performance_tests/           # Pruebas de rendimiento e índices
+    └── integration_tests/           # Pruebas de integración entre BDs
 ```
+
+## 📝 Descripción de Carpetas Principales
+
+### `/database`
+Contiene los 5 motores de base de datos del ecosistema:
+- **mongodb**: Gestión de contenido multimedia (100+ imágenes)
+- **sqlserver_ads**: Campañas publicitarias (1000 registros)
+- **sqlserver_crm**: Clientes y ventas (500k registros)
+- **postgresql**: Portal centralizado y usuarios
+- **redis**: Caché para optimización
+
+### `/kubernetes`
+Archivos YAML para orquestación de contenedores, permitiendo despliegue automático de toda la infraestructura.
+
+### `/mcp_servers`
+Implementación de servidores MCP (Model Context Protocol) para comunicación entre IA y bases de datos. Mínimo 2 tools por cada BD.
+
+### `/etl`
+Pipeline de datos que se ejecuta cada 11 minutos para sincronizar información entre las bases de datos usando herramientas visuales (NO código).
+
+### `/tests`
+Pruebas críticas requeridas:
+- Deadlock en cascada (3 transacciones)
+- Problemas de concurrencia (Dirty Read, Lost Update)
+- Comparación de rendimiento con/sin índices
+
+### `/documentation`
+- **AI_USAGE_LOG.md**: OBLIGATORIO - registrar TODO uso de IA
+- **DESIGN_DECISIONS.md**: Justificar decisiones técnicas
+- **API_DOCUMENTATION.md**: Documentar integraciones externas
+
+## ⚠️ Archivos Críticos
+
+| Archivo | Propósito | Prioridad |
+|---------|-----------|-----------|
+| `AI_USAGE_LOG.md` | Registrar prompts y validaciones | 🔴 CRÍTICO |
+| `docker-compose.yml` | Levantar ambiente local | 🟡 IMPORTANTE |
+| `.env` | Credenciales y configuración | 🔴 CRÍTICO |
+| Scripts de llenado | Generar datos de prueba | 🔴 CRÍTICO |
 
 ## ✅ Requisitos Críticos
 
