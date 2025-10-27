@@ -12,13 +12,38 @@ Sistema end-to-end de marketing y ventas con IA. 4 bases de datos especializadas
 | [Nombre 4] | PostgreSQL + ETL | @user4 | @git4 | ⏳ |
 
 ## 📊 Arquitectura
-```
-┌──────────────[PromptSales - PostgreSQL]──────────────┐
-│                    Portal Centralizado                 │
-└────────────────────┬──ETL 11min──┬────────────────────┘
-                     ↓              ↓
-    [PromptContent]  [PromptAds]  [PromptCrm]  [Redis]
-      MongoDB       SQL Server   SQL Server    Cache
+```mermaid
+graph LR
+    subgraph Central
+        PS[(PromptSales<br/>PostgreSQL)]
+    end
+    
+    subgraph Subsistemas
+        PC[(PromptContent<br/>MongoDB)]
+        PA[(PromptAds<br/>SQL Server)]
+        PCRM[(PromptCRM<br/>SQL Server)]
+    end
+    
+    REDIS[(Redis<br/>Cache)]
+    
+    PC ==> PS
+    PA ==> PS
+    PCRM ==> PS
+    
+    PC --> REDIS
+    PA --> REDIS
+    PCRM --> REDIS
+    PS --> REDIS
+    
+    PC <--> PA
+    PA <--> PCRM
+    PCRM <--> PC
+    
+    style PS fill:#336791,color:#fff
+    style PC fill:#13aa52,color:#fff
+    style PA fill:#cc2927,color:#fff
+    style PCRM fill:#cc2927,color:#fff
+    style REDIS fill:#dc382d,color:#fff
 ```
 
 ## 🗂️ Bases de Datos
