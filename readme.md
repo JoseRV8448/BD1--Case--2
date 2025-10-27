@@ -12,6 +12,9 @@ Sistema end-to-end de marketing y ventas con IA. 4 bases de datos especializadas
 | [Nombre 4] | PostgreSQL + ETL | @user4 | @git4 | ⏳ |
 
 ## 📊 Arquitectura
+
+### Vista Simplificada
+Flujo principal de datos entre subsistemas:
 ```mermaid
 graph LR
     subgraph Central
@@ -44,6 +47,69 @@ graph LR
     style PA fill:#cc2927,color:#fff
     style PCRM fill:#cc2927,color:#fff
     style REDIS fill:#dc382d,color:#fff
+```
+
+### Vista Detallada
+Arquitectura completa incluyendo integraciones externas, ETL, MCP servers y deployment:
+```mermaid
+graph TB
+    subgraph ext["🔌 EXTERNAS"]
+        EXT1[Canva/Adobe/OpenAI]
+        EXT2[Google Ads/Meta/TikTok]
+        EXT3[HubSpot/Salesforce/WhatsApp]
+    end
+    
+    subgraph sub["📊 SUBSISTEMAS"]
+        PC[(PromptContent<br/>MongoDB<br/>Imágenes & Contenido)]
+        PA[(PromptAds<br/>SQL Server<br/>1000 Campañas)]
+        PCRM[(PromptCRM<br/>SQL Server<br/>500K Clientes)]
+    end
+    
+    subgraph cache["⚡ CACHE"]
+        REDIS[(Redis<br/>< 400ms<br/>Token Optimization)]
+    end
+    
+    subgraph central["🏢 CENTRAL"]
+        PS[(PromptSales<br/>PostgreSQL<br/>Data Warehouse)]
+    end
+    
+    subgraph infra["☸️ KUBERNETES"]
+        K8S[5 Pods Independientes<br/>Auto-scaling]
+    end
+    
+    EXT1 -.->|REST API| PC
+    EXT2 -.->|REST API| PA
+    EXT3 -.->|REST API| PCRM
+    
+    PC <-->|MCP Server| PA
+    PA <-->|MCP + LinkServer| PCRM
+    PCRM <-->|MCP Server| PC
+    
+    PC -->|Cache API/MCP| REDIS
+    PA -->|Cache Queries| REDIS
+    PCRM -->|Cache Queries| REDIS
+    
+    PC ==>|ETL 11min<br/>Delta Only| PS
+    PA ==>|ETL 11min<br/>Delta Only| PS
+    PCRM ==>|ETL 11min<br/>Delta Only| PS
+    
+    PS -.->|Cache Results| REDIS
+    
+    PC -.->|Deploy| K8S
+    PA -.->|Deploy| K8S
+    PCRM -.->|Deploy| K8S
+    PS -.->|Deploy| K8S
+    REDIS -.->|Deploy| K8S
+    
+    style PC fill:#13aa52,color:#fff,stroke:#0d7d3d,stroke-width:3px
+    style PA fill:#cc2927,color:#fff,stroke:#8b1c1a,stroke-width:3px
+    style PCRM fill:#cc2927,color:#fff,stroke:#8b1c1a,stroke-width:3px
+    style PS fill:#336791,color:#fff,stroke:#234a65,stroke-width:3px
+    style REDIS fill:#dc382d,color:#fff,stroke:#9b2721,stroke-width:3px
+    style K8S fill:#326ce5,color:#fff,stroke:#2574a9,stroke-width:3px
+    style EXT1 fill:#7f8c8d,color:#fff
+    style EXT2 fill:#7f8c8d,color:#fff
+    style EXT3 fill:#7f8c8d,color:#fff
 ```
 
 ## 🗂️ Bases de Datos
