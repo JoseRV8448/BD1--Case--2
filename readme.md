@@ -6,10 +6,10 @@ Sistema end-to-end de marketing y ventas con IA. 4 bases de datos especializadas
 ## 👥 Equipo
 | Miembro | BD Asignada | Discord | GitHub | Estado |
 |---------|-------------|---------|--------|---------|
-| [Nombre 1] | Redis + MongoDB | @user1 | @git1 | ✅ |
-| [Nombre 2] | SQL Server (Ads) | @user2 | @git2 | ⏳ |
-| [Nombre 3] | SQL Server (CRM) | @user3 | @git3 | ⏳ |
-| [Nombre 4] | PostgreSQL + ETL | @user4 | @git4 | ⏳ |
+| [Nombre 1] | Redis + MongoDB | @user1 | @git1 | Revision⏳ |
+| [Nombre 2] | SQL Server (Ads) | @user2 | @git2 | Revision⏳ |
+| [Nombre 3] | SQL Server (CRM) | @user3 | @git3 | Revision⏳ |
+| [Nombre 4] | PostgreSQL + ETL | @user4 | @git4 | Revision⏳ |
 
 ## 📊 Arquitectura
 
