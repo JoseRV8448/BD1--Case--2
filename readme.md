@@ -122,6 +122,117 @@ graph TB
 | **PromptCrm** | SQL Server | 500K clientes + X.509 + LinkServer | ⏳ |
 | **PromptSales** | PostgreSQL | SSO + ETL deltas | ⏳ |
 
+---
+
+## 📐 Modelos de Datos Completados
+
+### Redis Cache - Estructura de Llaves
+**📁 Archivo de diseño:** [redis_design.txt](database/redis/design/redis_design.txt)
+```mermaid
+graph TB
+    subgraph API["Cache de APIs/MCP"]
+        A1["api:resultados:service:method:hash<br/>TTL: 1h"]
+        A2["api:stats:service<br/>Hash | TTL: 24h"]
+    end
+    
+    subgraph AI["Optimización de Tokens AI"]
+        AI1["ai:generacion:model:hash<br/>TTL: 24h"]
+        AI2["ai:tokens:user:month<br/>Hash | TTL: 30d"]
+    end
+    
+    subgraph CONTENT["Búsqueda de Contenido"]
+        C1["contenido:busqueda:hash<br/>TTL: 2h"]
+    end
+    
+    subgraph ETL["Control de Deltas ETL"]
+        E1["etl:delta:db:table<br/>TTL: 22min"]
+        E2["estadisticas:campana:id<br/>Hash | TTL: 11min"]
+    end
+    
+    subgraph SESSION["Sesiones y Auth"]
+        S1["sesion:user_id<br/>Hash | TTL: 2h"]
+        S2["ratelimit:service:user<br/>Counter"]
+    end
+    
+    subgraph MCP["Servidores MCP"]
+        M1["mcp:servidor:name<br/>Hash | TTL: 5min"]
+    end
+    
+    subgraph JOBS["Cola de Trabajos"]
+        J1["queue:jobs:type<br/>List"]
+        J2["job:id<br/>Hash | TTL: 24h"]
+        J3["lock:resource:id<br/>TTL: 30s"]
+    end
+    
+    style API fill:#2c3e50,color:#ecf0f1
+    style AI fill:#34495e,color:#ecf0f1
+    style CONTENT fill:#2c3e50,color:#ecf0f1
+    style ETL fill:#34495e,color:#ecf0f1
+    style SESSION fill:#2c3e50,color:#ecf0f1
+    style MCP fill:#34495e,color:#ecf0f1
+    style JOBS fill:#2c3e50,color:#ecf0f1
+```
+
+**Patrones de Llaves:**
+- Nomenclatura: `{dominio}:{entidad}:{identificador}`
+- TTL Estratégico: Según frecuencia de cambio (5min - 30días)
+- Cumple: Respuesta < 400ms (reduce a 5-50ms)
+
+---
+
+### MongoDB PromptContent - Colecciones
+**📁 Archivo de diseño:** [mongodb_promptcontent_design.js](database/mongodb/design/mongodb_promptcontent_design.js)
+```mermaid
+graph TB
+    subgraph IMAGES["imagenes (100+ docs)"]
+        IMG["_id: ObjectId<br/>url_imagen, url_thumbnail<br/>descripcion<br/>hashtags<br/>categoria<br/>vector_id_pinecone<br/>metadata técnica<br/>campanas_asociadas"]
+    end
+    
+    subgraph SERVICES["servicios_terceros"]
+        SVC["nombre_servicio<br/>url_base<br/>metodos_disponibles<br/>autenticacion OAuth2 POST<br/>rate_limits<br/>estado"]
+    end
+    
+    subgraph LOGS["bitacora_solicitudes"]
+        LOG["servicio_utilizado<br/>request/response<br/>resultado<br/>tiempo_respuesta_ms<br/>tokens_consumidos"]
+    end
+    
+    subgraph CAMP["logs_campanas"]
+        CAMP_LOG["id_campana<br/>id_cliente<br/>descripcion_campana<br/>publico_meta<br/>mensajes_poblacion<br/>generacion_metadata"]
+    end
+    
+    subgraph MCP_DB["mcp_servers"]
+        MCP_S["nombre_servidor<br/>tools: getContent<br/>generateCampaignContent<br/>configuracion<br/>metricas_uso"]
+    end
+    
+    subgraph CRED["credenciales_cifradas"]
+        CREDS["servicio_referencia<br/>tipo_credencial<br/>valor_cifrado<br/>algoritmo: X.509<br/>ultima_rotacion"]
+    end
+    
+    IMG -.->|vector_id| PINECONE[Pinecone<br/>Vectores 1536d]
+    IMG -.->|usa| SVC
+    LOG -->|registra| SVC
+    CAMP_LOG -->|referencia| IMG
+    MCP_S -->|consulta| IMG
+    SVC -.->|auth| CRED
+    
+    style IMAGES fill:#2c3e50,color:#ecf0f1
+    style SERVICES fill:#34495e,color:#ecf0f1
+    style LOGS fill:#2c3e50,color:#ecf0f1
+    style CAMP fill:#34495e,color:#ecf0f1
+    style MCP_DB fill:#2c3e50,color:#ecf0f1
+    style CRED fill:#34495e,color:#ecf0f1
+    style PINECONE fill:#7f8c8d,color:#ecf0f1
+```
+
+**Decisiones Clave de Diseño:**
+- Vectorización: Pinecone (1536 dims) - embeddings en cloud
+- Imágenes: URLs a S3/CloudFront - MongoDB solo metadata
+- Auth: Canva API con OAuth2 POST (cumple requisito)
+- Usuarios: Centralizados en PromptSales PostgreSQL (SSO)
+- MCP Tools: getContent (búsqueda semántica) + generateCampaignContent (3 mensajes/población)
+
+---
+
 # 📁 Estructura del Proyecto
 
 ```
