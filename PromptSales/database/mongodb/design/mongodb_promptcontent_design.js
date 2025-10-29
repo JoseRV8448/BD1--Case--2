@@ -1,7 +1,7 @@
 // ========================================
 // Diseño de Base de Datos MongoDB para PromptContent
-// Versión: 2.0 - Revisado según requisitos del profesor
-// Fecha: 2025-10-22
+// Versión: 4.0 - Revisado según requisitos del profesor
+// Fecha: 2025-10-27
 // ========================================
 
 // ========================================
