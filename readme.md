@@ -116,8 +116,8 @@ graph TB
 
 | BD | Motor | Requisitos | Estado |
 |----|-------|------------|---------|
-| **Redis** | Cache | TTL, Rate limiting | ✅ |
-| **PromptContent** | MongoDB | 100 imágenes + vectorización Pinecone | ✅ |
+| **Redis** | Cache | TTL, Rate limiting | ⏳ |
+| **PromptContent** | MongoDB | 100 imágenes + vectorización Pinecone | ⏳ |
 | **PromptAds** | SQL Server | 1000 campañas (30% activas) | ⏳ |
 | **PromptCrm** | SQL Server | 500K clientes + X.509 + LinkServer | ⏳ |
 | **PromptSales** | PostgreSQL | SSO + ETL deltas | ⏳ |
