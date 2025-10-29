@@ -127,7 +127,7 @@ graph TB
 ## 📐 Modelos de Datos Completados
 
 ### Redis Cache - Estructura de Llaves
-**📁 Archivo de diseño:** [redis_design.txt](database/redis/design/redis_design.txt)
+**📁 Archivo de diseño:** [redis_design.txt](PromptSales/database/redis/design/redis_design.txt)
 ```mermaid
 graph TB
     subgraph API["Cache de APIs/MCP"]
@@ -181,7 +181,7 @@ graph TB
 ---
 
 ### MongoDB PromptContent - Colecciones
-**📁 Archivo de diseño:** [mongodb_promptcontent_design.js](database/mongodb/design/mongodb_promptcontent_design.js)
+**📁 Archivo de diseño:** [mongodb_promptcontent_design.js](PromptSales/database/mongodb/design/mongodb_promptcontent_design.js)
 ```mermaid
 graph TB
     subgraph IMAGES["imagenes (100+ docs)"]
