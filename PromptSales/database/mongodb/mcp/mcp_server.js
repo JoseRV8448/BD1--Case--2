@@ -1,4 +1,4 @@
-// MCP Server - 2 tools requeridos
+// MCP Server - VERSIÓN CORREGIDA - 2 tools cumpliendo requisitos
 const { MCPServer } = require('@modelcontextprotocol/sdk/server');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -28,7 +28,9 @@ async function initialize() {
   console.error('✅ Conectado');
 }
 
-// TOOL 1: getContent
+// ============================================
+// TOOL 1: getContent ✅ CORRECTO
+// ============================================
 async function getContent({ descripcion, tipo = 'imagen', limite = 10 }) {
   // 1. Generar embedding
   const embeddingRes = await openai.embeddings.create({
@@ -66,61 +68,126 @@ async function getContent({ descripcion, tipo = 'imagen', limite = 10 }) {
   };
 }
 
-// TOOL 2: generateCampaignMessages
+// ============================================
+// TOOL 2: generateCampaignMessages 🔧 CORREGIDO
+// ============================================
 async function generateCampaignMessages({ descripcion_campana, publico_meta }) {
-  // 1. Generar mensajes con OpenAI
-  const prompt = `Genera 3 mensajes publicitarios para:
-Producto: ${descripcion_campana}
-Público: ${publico_meta.pais || 'Costa Rica'}, edad ${publico_meta.edad_min}-${publico_meta.edad_max}
+  const campana_id = `camp_${Date.now()}`;
+  
+  // Convertir publico_meta a array de segmentos si no lo es
+  // Ej: publico_meta = { segmentos: [{edad_min:18, edad_max:25}, {edad_min:26, edad_max:40}] }
+  // O: publico_meta = { edad_min: 18, edad_max: 30 } (un solo segmento)
+  const segmentos = Array.isArray(publico_meta.segmentos) 
+    ? publico_meta.segmentos 
+    : [publico_meta];
+  
+  const bitacora_completa = [];
+
+  // Generar 3 mensajes POR CADA segmento poblacional
+  for (const segmento of segmentos) {
+    const segmento_descripcion = [
+      `País: ${segmento.pais || 'Costa Rica'}`,
+      `Edad: ${segmento.edad_min}-${segmento.edad_max}`,
+      segmento.genero ? `Género: ${segmento.genero}` : '',
+      segmento.profesion ? `Profesión: ${segmento.profesion}` : '',
+      segmento.intereses ? `Intereses: ${segmento.intereses}` : ''
+    ].filter(Boolean).join(', ');
+
+    const prompt = `Genera 3 mensajes publicitarios para:
+Producto/Campaña: ${descripcion_campana}
+Segmento poblacional: ${segmento_descripcion}
+
+IMPORTANTE: Adapta el lenguaje, tono y referencias culturales a este segmento específico.
 
 Responde JSON:
 {
   "mensajes": [
-    {"numero": 1, "texto": "...", "tono": "profesional"},
-    {"numero": 2, "texto": "...", "tono": "casual"},
-    {"numero": 3, "texto": "...", "tono": "motivacional"}
+    {"numero": 1, "texto": "mensaje adaptado al segmento", "tono": "profesional"},
+    {"numero": 2, "texto": "mensaje adaptado al segmento", "tono": "casual"},
+    {"numero": 3, "texto": "mensaje adaptado al segmento", "tono": "motivacional"}
   ]
 }`;
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4-turbo',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' }
-  });
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4-turbo',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' }
+    });
 
-  const mensajes = JSON.parse(completion.choices[0].message.content);
-  const campana_id = `camp_${Date.now()}`;
+    const resultado = JSON.parse(completion.choices[0].message.content);
+    
+    // Agregar a bitácora con identificación del segmento
+    bitacora_completa.push({
+      segmento_poblacional: segmento,
+      descripcion_segmento: segmento_descripcion,
+      mensajes: resultado.mensajes.map(m => ({
+        ...m,
+        generado_at: new Date(),
+        tokens_estimados: m.texto.split(' ').length * 1.3 // Estimación
+      })),
+      timestamp: new Date()
+    });
+  }
 
-  // 2. Almacenar en MongoDB
+  // Almacenar en MongoDB
   await db.collection('campana_mensajes').insertOne({
     campana_id,
     descripcion_campana,
-    publico_meta,
-    mensajes_generados: mensajes.mensajes,
+    publico_meta_original: publico_meta,
+    bitacora_por_segmento: bitacora_completa,
+    resumen: {
+      total_segmentos: segmentos.length,
+      total_mensajes: bitacora_completa.length * 3,
+      mensajes_por_segmento: 3
+    },
     created_at: new Date()
   });
 
-  return { campana_id, ...mensajes };
+  return { 
+    campana_id,
+    resumen: {
+      segmentos_procesados: segmentos.length,
+      mensajes_generados_total: bitacora_completa.length * 3,
+      mensajes_por_segmento: 3
+    },
+    bitacora: bitacora_completa 
+  };
 }
 
+// ============================================
 // Iniciar MCP Server
+// ============================================
 async function main() {
   await initialize();
   const server = new MCPServer({ name: 'promptcontent-mcp', version: '1.0.0' });
 
-  server.tool('getContent', 'Busca imágenes por descripción',
-    { descripcion: { type: 'string' }, tipo: { type: 'string' }, limite: { type: 'number' } },
+  server.tool('getContent', 'Busca imágenes por descripción semántica usando búsqueda vectorial',
+    { 
+      descripcion: { type: 'string', description: 'Descripción textual del contenido buscado' }, 
+      tipo: { type: 'string', description: 'Tipo de contenido (imagen|video|texto)', default: 'imagen' }, 
+      limite: { type: 'number', description: 'Cantidad máxima de resultados', default: 10 } 
+    },
     getContent
   );
 
-  server.tool('generateCampaignMessages', 'Genera 3 mensajes de campaña',
-    { descripcion_campana: { type: 'string' }, publico_meta: { type: 'object' } },
+  server.tool('generateCampaignMessages', 
+    'Genera 3 mensajes de campaña POR CADA segmento poblacional y almacena bitácora',
+    { 
+      descripcion_campana: { 
+        type: 'string', 
+        description: 'Descripción del producto/servicio a promocionar' 
+      }, 
+      publico_meta: { 
+        type: 'object', 
+        description: 'Puede ser un segmento {edad_min, edad_max, pais...} o múltiples {segmentos: [{...}, {...}]}' 
+      } 
+    },
     generateCampaignMessages
   );
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('🚀 MCP Server listo');
+  console.error('🚀 MCP Server listo (versión corregida)');
 }
 
 process.on('SIGINT', async () => {
