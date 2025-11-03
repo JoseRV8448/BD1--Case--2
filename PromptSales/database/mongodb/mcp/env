@@ -1,0 +1,5 @@
+MONGODB_URI=mongodb://localhost:27017
+OPENAI_API_KEY=sk-proj-xxxxx
+PINECONE_API_KEY=xxxxx
+PINECONE_ENVIRONMENT=us-east-1-aws
+PINECONE_INDEX=promptcontent-images
