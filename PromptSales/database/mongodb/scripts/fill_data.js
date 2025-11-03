@@ -45,4 +45,4 @@ for(let i = 1; i <= 100; i++) {
   });
 }
 
-print("✅ 100 imágenes insertadas con descripciones amplias y coherentes");
+print("100 imágenes insertadas con descripciones amplias y coherentes");
