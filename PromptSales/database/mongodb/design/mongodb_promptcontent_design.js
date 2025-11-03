@@ -1,5 +1,4 @@
-// MongoDB PromptContent - Diseño Corregido (Feedback aplicado)
-
+// MongoDB PromptContent
 // ============ COLECCIONES ============
 
 // 1. contenido_generado (NO limitado a imagenes)
