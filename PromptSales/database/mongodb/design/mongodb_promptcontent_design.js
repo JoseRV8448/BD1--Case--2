@@ -1,3 +1,21 @@
+/*
+ * PromptContent - MongoDB Database Design
+ * 
+ * Collections: 4
+ * - contenido_generado: 100+ documentos (imágenes, videos, texto)
+ * - log_llamadas_api: Registro de llamadas a APIs externas
+ * - configuracion_mcp: Configuración MCP servers y clients
+ * - integraciones_api: Catálogo de APIs disponibles
+ * 
+ * Design Principles:
+ * 1. Schema-less para flexibilidad
+ * 2. Embedded documents para MCP config
+ * 3. Vector embeddings para búsqueda semántica
+ * 4. Multi-provider support (OpenAI, Anthropic, etc.)
+ */
+
+
+
 // MongoDB PromptContent
 // ============ COLECCIONES ============
 
@@ -7,7 +25,7 @@ db.contenido_generado.insertOne({
   url: "s3://promptsales/content/img001.jpg",
   descripcion_amplia: "Anuncio de zapatos deportivos mostrando persona corriendo en playa al amanecer, enfoque en comodidad y libertad",
   hashtags: ["#deporte", "#running", "#costarica", "#verano2025"],
-  vector_embedding: [0.12, 0.45, ...], // 1536 dims para Pinecone
+  vector_embedding: [0.12, 0.45, 0.78, /* ... 1533 valores más */],
   
   // NUEVO: Instrucciones para generación (faltaba!)
   prompt_instrucciones: {

@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "main": "mcp_server.js",
   "scripts": {
-    "start": "node mcp_server.js"
+    "start": "node mcp_server.js",
+    "test:api": "node test_external_api.js",
+    "fill": "node ../scripts/fill_data.js",
+    "index:vectors": "node index_vectors.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "@pinecone-database/pinecone": "^2.0.1",
     "mongodb": "^6.3.0",
-    "openai": "^4.20.1"
+    "openai": "^4.20.1",
+    "dotenv": "^16.3.1"
   }
 }

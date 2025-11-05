@@ -15,7 +15,7 @@ exit
 
 ### 2. Crear cuenta Pinecone
 ```
-https://www.pinecone.io/
+https://www.pinecoFne.io/
 → Sign up (gratis)
 → Create Index:
    - Name: promptcontent-images
