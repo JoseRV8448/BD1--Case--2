@@ -1,17 +1,40 @@
 /*
+ * ============================================
  * PromptContent - MongoDB Database Design
+ * ============================================
  * 
- * Collections: 4
- * - contenido_generado: 100+ documentos (imágenes, videos, texto)
- * - log_llamadas_api: Registro de llamadas a APIs externas
- * - configuracion_mcp: Configuración MCP servers y clients
- * - integraciones_api: Catálogo de APIs disponibles
+ * PROPÓSITO:
+ * Base de datos para gestión de contenido multimedia generado con IA,
+ * logs de APIs externas, y configuración de MCP servers.
  * 
- * Design Principles:
- * 1. Schema-less para flexibilidad
- * 2. Embedded documents para MCP config
- * 3. Vector embeddings para búsqueda semántica
- * 4. Multi-provider support (OpenAI, Anthropic, etc.)
+ * COLLECTIONS: 4
+ * 
+ * 1. contenido_generado (100+ docs)
+ *    - Contenido multimedia (imágenes, videos, audio, texto)
+ *    - Embeddings vectoriales para búsqueda semántica
+ *    - Metadata de generación AI (provider, modelo, tokens)
+ * 
+ * 2. log_llamadas_api
+ *    - Registro completo de requests/responses a APIs externas
+ *    - Incluye headers, body, latencia
+ * 
+ * 3. configuracion_mcp
+ *    - Configuración de MCP servers y clients
+ *    - Tools disponibles: getContent, generateCampaignMessages
+ * 
+ * 4. integraciones_api
+ *    - Catálogo de APIs disponibles (OpenAI, Anthropic, Canva, etc.)
+ *    - Rate limits y endpoints
+ * 
+ * DESIGN PRINCIPLES:
+ * - Schema-less para flexibilidad multi-provider
+ * - Embedded documents para configuración MCP
+ * - Vector embeddings preparados para Pinecone
+ * - Logs completos para auditoría
+ * 
+ * NOTA: Este archivo muestra la estructura conceptual.
+ * Para datos reales ejecutar: fill_data.js
+ * Los "..." indican campos abreviados por claridad.
  */
 
 
