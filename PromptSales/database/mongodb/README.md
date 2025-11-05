@@ -11,7 +11,6 @@
 3. **MCP Debugging** - Stdio transport is silent; created `test_mcp_tools.js` for direct testing
 4. **Docker Benefits** - Consistent MongoDB environment across team machines
 
-👉 **[Full details in evidence/README.md](/PromptSales/database/mongodb/evidence/README.md)**
 
 ---
 
