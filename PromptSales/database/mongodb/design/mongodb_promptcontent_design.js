@@ -8,140 +8,124 @@
  * Base de datos para gestión de contenido multimedia generado con IA,
  * logs de APIs externas, y configuración de MCP servers.
  * 
- * COLLECTIONS: 5 (se agregó bitacora_solicitudes)
- * 
- * CAMBIOS PRINCIPALES:
- * 1. ✅ Eliminado campo "tipo" - ahora es parte de metadata embebida
- * 2. ✅ Agregada referencia a campañas en contenido_generado
- * 3. ✅ MCP servers con configuración completa de conexión
- * 4. ✅ Nueva collection: bitacora_solicitudes (tracking de generateCampaignMessages)
- * 5. ✅ Instrucciones detalladas de generación AI para cada tipo de contenido
+ * COLLECTIONS: 6
  */
 
 // ============================================
 // COLLECTION 1: contenido_generado
 // ============================================
-// CORRECCIÓN: Agregada referencia a campañas + metadata embebida en vez de campo "tipo"
 
 db.contenido_generado.insertOne({
-  // ✅ NUEVO: Vinculación con campañas
-  campana_id: "camp_2024_zapatos_running", // null si es contenido genérico
-  cliente_id: "cliente_nike_cr",
+  campana_id: "camp_2025_tech_smartwatch",
+  cliente_id: "cliente_samsung_latam",
   
-  // Metadata del contenido (embedded document)
   metadata: {
-    formato: "imagen",  // imagen|video|texto|audio
+    formato: "imagen",
     mime_type: "image/jpeg",
     resolucion: "1080x1080",
-    duracion_segundos: null,  // para videos/audio
+    duracion_segundos: null,
     tamaño_bytes: 245000,
     url_almacenamiento: "s3://promptsales/content/img001.jpg",
     url_thumbnail: "s3://promptsales/content/thumbnails/img001_thumb.jpg"
   },
   
-  // Contenido descriptivo
-  descripcion_amplia: "Anuncio de zapatos deportivos mostrando persona corriendo en playa al amanecer, enfoque en comodidad y libertad",
-  hashtags: ["#deporte", "#running", "#costarica", "#verano2025", "#nike"],
-  palabras_clave: ["zapatos", "running", "playa", "amanecer", "libertad"],
+  descripcion_contenido: "Smartwatch deportivo Galaxy Watch Pro durante entrenamiento de ciclismo en montañas de Talamanca, Costa Rica",
+  hashtags: ["#tech", "#cycling", "#costarica", "#fitness2025", "#samsung"],
+  palabras_clave: ["smartwatch", "ciclismo", "montaña", "entrenamiento", "tecnologia"],
   
-  // Vector embedding para búsqueda semántica
-  vector_embedding: [0.12, 0.45, 0.78 /* ... 1533 valores más */],
+  embeddings: [0.12, 0.45, 0.78 /* ... 1533 valores más */],
   
-  // ✅ INSTRUCCIONES COMPLETAS DE GENERACIÓN
   instrucciones_generacion: {
-    prompt_original: "Genera una imagen promocional de zapatos deportivos Nike en la playa de Costa Rica al amanecer, mostrando a un corredor en acción. La imagen debe transmitir libertad, energía y comodidad. Usar colores cálidos del amanecer.",
+    prompt_original: "Genera imagen de smartwatch deportivo Samsung en ciclista profesional escalando montañas de Costa Rica. Mostrar pantalla del reloj con métricas. Ambiente de naturaleza y tecnología. Colores vibrantes del atardecer.",
     
     parametros_ai: {
-      mensaje_core: "Promocionar zapatos X-Speed para corredores costarricenses",
-      tono: "inspiracional",
-      estilo_visual: "fotografía deportiva profesional",
-      colores_principales: ["naranja", "azul", "dorado"],
-      elementos_requeridos: ["logo_nike", "zapatos_visible", "playa_costarica"],
-      elementos_prohibidos: ["competencia", "texto_pequeño", "personas_no_latinas"]
+      mensaje_core: "Promocionar Galaxy Watch Pro para atletas extremos costarricenses",
+      tono: "tecnológico-inspiracional",
+      estilo_visual: "fotografía deportiva tech",
+      colores_principales: ["azul", "negro", "naranja"],
+      elementos_requeridos: ["logo_samsung", "reloj_visible", "montañas_costarica"],
+      elementos_prohibidos: ["otras_marcas", "texto_pequeño", "interiores"]
     },
     
-    objetivos: ["mostrar_beneficios", "crear_deseo", "asociar_con_libertad"],
-    restricciones: ["no_mencionar_competencia", "incluir_logo", "colores_corporativos"],
+    objetivos: ["destacar_tecnologia", "crear_aspiracion", "asociar_con_naturaleza"],
+    restricciones: ["no_mencionar_competencia", "mostrar_pantalla", "colores_marca"],
     publico_objetivo: {
-      edad: "25-40",
+      edad: "28-45",
       genero: "ambos",
       ubicacion: "Costa Rica",
-      intereses: ["deporte", "salud", "bienestar"]
+      intereses: ["ciclismo", "tecnologia", "naturaleza"]
     }
   },
   
-  // Metadata de generación AI
   ai_metadata: {
-    provider: "OpenAI", // OpenAI|Anthropic|Gemini|MidJourney|StableDiffusion|Canva|Adobe
+    provider_ia: "OpenAI",
     modelo: "dall-e-3",
     version_modelo: "v1.0",
-    tokens_consumidos: 890,
+    tokens_usados: 920,
     costo_usd: 0.04,
-    tiempo_generacion_ms: 8500,
+    tiempo_generacion_ms: 8700,
     intentos: 1,
-    fecha_generacion: ISODate("2024-10-28T10:30:00Z")
+    fecha_generacion: ISODate("2025-01-15T10:30:00Z")
   },
   
-  // Metadata de aprobación
   aprobacion: {
-    estado: "aprobado", // pendiente|aprobado|rechazado|revision
-    aprobado_por: "user_123",
-    fecha_aprobacion: ISODate("2024-10-28T11:00:00Z"),
-    comentarios: "Excelente, usar para campaña principal"
+    estado: "aprobado",
+    aprobado_por: "user_456",
+    fecha_aprobacion: ISODate("2025-01-15T11:00:00Z"),
+    comentarios: "Excelente composición tech-naturaleza"
   },
   
-  // Métricas de uso
   metricas: {
-    veces_usado: 5,
-    campañas_asociadas: ["camp_2024_zapatos_running", "camp_2024_verano"],
-    engagement_promedio: 0.045, // calculado desde PromptAds
-    ultima_actualizacion: ISODate("2024-11-01T10:00:00Z")
+    veces_usado: 8,
+    campañas_asociadas: ["camp_2025_tech_smartwatch", "camp_2025_outdoor"],
+    engagement_promedio: 0.052,
+    ultima_actualizacion: ISODate("2025-01-20T10:00:00Z")
   },
   
-  created_at: ISODate("2024-10-28T10:30:00Z"),
-  updated_at: ISODate("2024-11-01T10:00:00Z")
+  created_at: ISODate("2025-01-15T10:30:00Z"),
+  updated_at: ISODate("2025-01-20T10:00:00Z")
 });
 
-// Ejemplo de contenido tipo VIDEO
+// Ejemplo VIDEO
 db.contenido_generado.insertOne({
-  campana_id: "camp_2024_zapatos_running",
-  cliente_id: "cliente_nike_cr",
+  campana_id: "camp_2025_tech_smartwatch",
+  cliente_id: "cliente_samsung_latam",
   
   metadata: {
     formato: "video",
     mime_type: "video/mp4",
     resolucion: "1920x1080",
     duracion_segundos: 30,
-    tamaño_bytes: 12500000,
+    tamaño_bytes: 12800000,
     url_almacenamiento: "s3://promptsales/content/video001.mp4",
     url_thumbnail: "s3://promptsales/content/thumbnails/video001_thumb.jpg",
     fps: 30,
     codec: "h264"
   },
   
-  descripcion_amplia: "Video promocional de 30 segundos mostrando atletas corriendo en diferentes paisajes de Costa Rica, con enfoque en los zapatos Nike X-Speed",
-  hashtags: ["#nike", "#running", "#costarica", "#video"],
-  palabras_clave: ["zapatos", "running", "costa rica", "atletas", "velocidad"],
-  vector_embedding: [0.23, 0.56, 0.89 /* ... */],
+  descripcion_contenido: "Video 30s atletas usando Galaxy Watch en diferentes deportes extremos de Costa Rica: surf, ciclismo montaña, trail running",
+  hashtags: ["#samsung", "#extremesports", "#costarica", "#video"],
+  palabras_clave: ["smartwatch", "deportes", "costa rica", "atletas", "aventura"],
+  embeddings: [0.23, 0.56, 0.89 /* ... */],
   
   instrucciones_generacion: {
-    prompt_original: "Genera un video de 30 segundos mostrando atletas corriendo en paisajes icónicos de Costa Rica. Incluir montañas, playas y ciudad. Enfatizar los zapatos Nike X-Speed. Música energética de fondo.",
+    prompt_original: "Video 30s atletas extremos CR con Galaxy Watch. Incluir surf Tamarindo, MTB volcán Arenal, trail Chirripó. Destacar métricas en pantalla. Música electrónica energética.",
     
     parametros_ai: {
-      mensaje_core: "Mostrar versatilidad de Nike X-Speed en diferentes terrenos",
-      tono: "energético",
+      mensaje_core: "Mostrar versatilidad Galaxy Watch en deportes extremos",
+      tono: "adrenalina-tech",
       estilo_visual: "cinematográfico deportivo",
       duracion_segundos: 30,
-      transiciones: ["cortes_rapidos", "slow_motion_zapatos"],
+      transiciones: ["cortes_dinamicos", "slow_motion_metricas"],
       audio: {
-        musica: "energetica_instrumental",
-        efectos_sonido: ["pasos", "viento", "olas"],
+        musica: "electronica_energetica",
+        efectos_sonido: ["olas", "cadena_bici", "respiracion"],
         voz_narracion: false
       }
     },
     
-    objetivos: ["mostrar_versatilidad", "crear_aspiracion", "destacar_tecnologia"],
-    restricciones: ["duracion_maxima_30s", "incluir_logo_final", "sin_texto_pantalla"],
+    objetivos: ["mostrar_resistencia", "destacar_metricas", "crear_emocion"],
+    restricciones: ["max_30s", "logo_final", "metricas_visibles"],
     publico_objetivo: {
       edad: "25-40",
       genero: "ambos",
@@ -150,21 +134,20 @@ db.contenido_generado.insertOne({
   },
   
   ai_metadata: {
-    provider: "RunwayML",
+    provider_ia: "RunwayML",
     modelo: "gen-2",
-    tokens_consumidos: 3500,
-    costo_usd: 1.20,
-    tiempo_generacion_ms: 120000
+    tokens_usados: 3600,
+    costo_usd: 1.25,
+    tiempo_generacion_ms: 125000
   },
   
-  created_at: ISODate("2024-10-29T14:00:00Z")
+  created_at: ISODate("2025-01-16T14:00:00Z")
 });
 
 
 // ============================================
 // COLLECTION 2: log_llamadas_api
 // ============================================
-// ✅ YA CORRECTO: Body completo en request y response
 
 db.log_llamadas_api.insertOne({
   servicio: "OpenAI",
@@ -179,108 +162,99 @@ db.log_llamadas_api.insertOne({
     },
     body: {
       model: "dall-e-3",
-      prompt: "Professional running shoes on beach at sunrise in Costa Rica",
+      prompt: "Professional smartwatch on mountain cyclist in Costa Rica highlands",
       n: 1,
       size: "1024x1024",
       quality: "hd",
       style: "natural"
     },
-    timestamp_envio: ISODate("2024-10-28T10:30:00Z")
+    fecha_envio: ISODate("2025-01-15T10:30:00Z")
   },
   
   response: {
     status: 200,
     headers: {
       "content-type": "application/json",
-      "x-request-id": "req_abc123"
+      "x-request-id": "req_xyz456"
     },
     body: {
-      created: 1698480600,
-      data: [
-        {
-          url: "https://oaidalleapiprodscus.blob.core.windows.net/private/...",
-          revised_prompt: "A professional photograph of running shoes on a beach..."
-        }
-      ]
+      created: 1737808200,
+      data: [{
+        url: "https://oaidalleapiprodscus.blob.core.windows.net/private/...",
+        revised_prompt: "Professional photograph of cycling smartwatch..."
+      }]
     },
-    timestamp_recepcion: ISODate("2024-10-28T10:30:08Z")
+    fecha_recepcion: ISODate("2025-01-15T10:30:08Z")
   },
   
-  latencia_ms: 8500,
+  tiempo_ms: 8700,
   
-  // Metadata adicional
   metadata: {
-    campana_id: "camp_2024_zapatos_running",
+    campana_id: "camp_2025_tech_smartwatch",
     contenido_id: ObjectId("507f1f77bcf86cd799439011"),
-    usuario_solicitante: "user_123",
+    usuario_solicitante: "user_456",
     intento_numero: 1,
     resultado: "exitoso",
-    tokens_consumidos: 890,
+    tokens_usados: 920,
     costo_estimado_usd: 0.04
   },
   
-  created_at: ISODate("2024-10-28T10:30:08Z")
+  created_at: ISODate("2025-01-15T10:30:08Z")
 });
 
-// Log de llamada a servicio externo de diseño (Canva)
 db.log_llamadas_api.insertOne({
-  servicio: "Canva",
-  endpoint: "/v1/designs/generate",
+  servicio: "Adobe",
+  endpoint: "/v1/creative/generate",
   
   request: {
     method: "POST",
     headers: {
-      "Authorization": "Bearer canva_token_***",
+      "Authorization": "Bearer adobe_token_***",
       "Content-Type": "application/json"
     },
     body: {
-      template_id: "instagram_post_1080",
-      brand_kit_id: "nike_cr_brandkit",
+      template_id: "instagram_story_1080",
+      brand_kit_id: "samsung_cr_brand",
       elements: {
-        headline: "Corre más rápido",
-        description: "Con X-Speed Nike",
+        headline: "Tecnología en tu muñeca",
+        description: "Galaxy Watch Pro",
         image_url: "s3://promptsales/content/img001.jpg",
         colors: {
-          primary: "#FF6B00",
-          secondary: "#001489"
+          primary: "#1428A0",
+          secondary: "#00D7FF"
         }
       },
       export_format: "png"
     },
-    timestamp_envio: ISODate("2024-10-28T10:31:00Z")
+    fecha_envio: ISODate("2025-01-15T10:31:00Z")
   },
   
   response: {
     status: 200,
     body: {
-      design_id: "xyz789",
-      url: "https://canva.com/design/xyz789",
-      export_url: "https://export.canva.com/xyz789.png",
-      thumbnail_url: "https://export.canva.com/xyz789_thumb.png"
+      design_id: "adobe_xyz123",
+      url: "https://adobe.com/design/xyz123",
+      export_url: "https://export.adobe.com/xyz123.png",
+      thumbnail_url: "https://export.adobe.com/xyz123_thumb.png"
     },
-    timestamp_recepcion: ISODate("2024-10-28T10:31:02Z")
+    fecha_recepcion: ISODate("2025-01-15T10:31:02Z")
   },
   
-  latencia_ms: 2000,
-  created_at: ISODate("2024-10-28T10:31:02Z")
+  tiempo_ms: 2100,
+  created_at: ISODate("2025-01-15T10:31:02Z")
 });
 
 
 // ============================================
 // COLLECTION 3: configuracion_mcp
 // ============================================
-// ✅ CORRECCIÓN MAYOR: Configuración completa de servers y clients con parámetros detallados
 
 db.configuracion_mcp.insertOne({
-  // ============================================
-  // MCP SERVERS (los que NOSOTROS levantamos)
-  // ============================================
-  mcp_servers: [
+  servidores: [
     {
       nombre: "content_mcp_server",
       descripcion: "Servidor MCP para búsqueda y generación de contenido",
       
-      // Configuración de despliegue
       deployment: {
         host: "0.0.0.0",
         port: 3001,
@@ -291,15 +265,13 @@ db.configuracion_mcp.insertOne({
         replicas: 3
       },
       
-      // Configuración de autenticación
       autenticacion: {
-        tipo: "api_key", // api_key|oauth2|jwt
+        tipo: "api_key",
         header_name: "X-MCP-API-Key",
         timeout_segundos: 30,
         reintentos_maximos: 3
       },
       
-      // Tools disponibles en este server
       tools: [
         {
           nombre: "getContent",
@@ -311,7 +283,7 @@ db.configuracion_mcp.insertOne({
               tipo: "string",
               requerido: true,
               descripcion: "Texto descriptivo del contenido buscado",
-              ejemplo: "zapatos deportivos en la playa"
+              ejemplo: "smartwatch en ciclismo montaña"
             },
             tipo_contenido: {
               tipo: "string",
@@ -371,13 +343,13 @@ db.configuracion_mcp.insertOne({
               tipo: "string",
               requerido: true,
               descripcion: "ID de la campaña para tracking",
-              ejemplo: "camp_2024_zapatos_running"
+              ejemplo: "camp_2025_tech_smartwatch"
             },
             descripcion_campana: {
               tipo: "string",
               requerido: true,
               descripcion: "Descripción completa del producto/servicio a promocionar",
-              ejemplo: "Zapatos deportivos Nike X-Speed para corredores, enfoque en comodidad y velocidad"
+              ejemplo: "Smartwatch Samsung Galaxy Watch Pro para deportistas extremos"
             },
             publico_meta: {
               tipo: "object",
@@ -424,7 +396,6 @@ db.configuracion_mcp.insertOne({
             }
           },
           
-          // ✅ INSTRUCCIONES DETALLADAS DE GENERACIÓN AI
           instrucciones_generacion_ai: {
             modelo_recomendado: "gpt-4-turbo",
             
@@ -443,7 +414,7 @@ INSTRUCCIONES ESPECÍFICAS:
 
 Tonos a usar: {tonos_requeridos}
 
-IMPORTANTE: Los mensajes deben ser DIFERENTES entre sí, no variaciones del mismo mensaje.
+IMPORTANTE: Los mensajes deben ser DIFERENTES entre sí.
 
 Responde en formato JSON:
 {
@@ -453,8 +424,8 @@ Responde en formato JSON:
       "texto": "mensaje adaptado al segmento",
       "tono": "profesional",
       "call_to_action": "texto_cta",
-      "emojis_usados": ["🏃", "⚡"],
-      "justificacion": "por qué este mensaje funciona para este segmento"
+      "emojis_usados": ["🚴", "⌚"],
+      "justificacion": "por qué este mensaje funciona"
     }
   ]
 }`,
@@ -483,7 +454,6 @@ Responde en formato JSON:
         }
       ],
       
-      // Configuración de performance
       performance: {
         max_concurrent_requests: 50,
         timeout_global_ms: 30000,
@@ -493,7 +463,6 @@ Responde en formato JSON:
         }
       },
       
-      // Health check
       health_check: {
         endpoint: "/health",
         intervalo_segundos: 30
@@ -501,40 +470,33 @@ Responde en formato JSON:
       
       estado: "activo",
       version: "1.0.0",
-      updated_at: ISODate("2024-10-28T09:00:00Z")
+      updated_at: ISODate("2025-01-10T09:00:00Z")
     }
   ],
   
-  // ============================================
-  // MCP CLIENTS (los que SE CONECTAN a nuestros servers)
-  // ============================================
-  mcp_clients: [
+  clientes: [
     {
       nombre: "promptads_client",
       descripcion: "Cliente MCP desde PromptAds para búsqueda de contenido",
       
-      // A qué server se conecta
       conecta_a: {
         server_nombre: "content_mcp_server",
         url: "http://content-mcp-server:3001",
         namespace_k8s: "promptcontent"
       },
       
-      // Configuración de autenticación del cliente
       autenticacion: {
         api_key: "promptads_api_key_***",
         header_name: "X-MCP-API-Key"
       },
       
-      // Permisos y limitaciones
       permisos: {
-        tools_permitidos: ["getContent"],
+        tools_acceso: ["getContent"],
         tools_prohibidos: ["generateCampaignMessages"],
         rate_limit_personalizado: "200/minuto",
         max_requests_por_hora: 5000
       },
       
-      // Configuración de timeout y reintentos
       configuracion_conexion: {
         timeout_ms: 5000,
         max_reintentos: 3,
@@ -542,7 +504,6 @@ Responde en formato JSON:
         keep_alive: true
       },
       
-      // Metadata del cliente
       metadata: {
         origen_namespace: "promptads",
         origen_pod_pattern: "promptads-api-*",
@@ -550,7 +511,7 @@ Responde en formato JSON:
       },
       
       estado: "activo",
-      created_at: ISODate("2024-10-20T10:00:00Z")
+      created_at: ISODate("2024-12-15T10:00:00Z")
     },
     
     {
@@ -569,14 +530,14 @@ Responde en formato JSON:
       },
       
       permisos: {
-        tools_permitidos: ["generateCampaignMessages"],
+        tools_acceso: ["generateCampaignMessages"],
         tools_prohibidos: ["getContent"],
         rate_limit_personalizado: "50/minuto",
         max_requests_por_hora: 2000
       },
       
       configuracion_conexion: {
-        timeout_ms: 10000,  // Mayor timeout para generación AI
+        timeout_ms: 10000,
         max_reintentos: 2,
         backoff_exponencial: true
       },
@@ -588,7 +549,7 @@ Responde en formato JSON:
       },
       
       estado: "activo",
-      created_at: ISODate("2024-10-20T10:00:00Z")
+      created_at: ISODate("2024-12-15T10:00:00Z")
     },
     
     {
@@ -607,7 +568,7 @@ Responde en formato JSON:
       },
       
       permisos: {
-        tools_permitidos: ["getContent", "generateCampaignMessages"],
+        tools_acceso: ["getContent", "generateCampaignMessages"],
         rate_limit_personalizado: "500/minuto",
         max_requests_por_hora: 20000
       },
@@ -625,13 +586,10 @@ Responde en formato JSON:
       },
       
       estado: "activo",
-      created_at: ISODate("2024-10-20T10:00:00Z")
+      created_at: ISODate("2024-12-15T10:00:00Z")
     }
   ],
   
-  // ============================================
-  // CONEXIONES EXTERNAS (APIs de terceros)
-  // ============================================
   conexiones_externas: [
     {
       nombre: "OpenAI API",
@@ -687,51 +645,49 @@ Responde en formato JSON:
   ],
   
   version: "2.0",
-  updated_at: ISODate("2024-11-06T10:00:00Z")
+  updated_at: ISODate("2025-01-10T10:00:00Z")
 });
 
 
 // ============================================
 // COLLECTION 4: bitacora_solicitudes
 // ============================================
-// ✅ NUEVA COLLECTION: Track completo de solicitudes al tool generateCampaignMessages
 
 db.bitacora_solicitudes.insertOne({
-  solicitud_id: "req_20241106_001",
+  id_request: "req_20250115_001",
   tool_name: "generateCampaignMessages",
   
-  // Request completo
   request: {
-    campana_id: "camp_2024_zapatos_running",
-    descripcion_campana: "Zapatos deportivos Nike X-Speed para corredores costarricenses, enfoque en comodidad, velocidad y terrenos variados",
+    campana_id: "camp_2025_tech_smartwatch",
+    descripcion_campana: "Smartwatch Samsung Galaxy Watch Pro para deportistas extremos costarricenses, resistencia agua IP68, GPS multideporte",
     
     publico_meta: {
       segmentos: [
         {
           pais: "Costa Rica",
-          edad_min: 25,
-          edad_max: 35,
+          edad_min: 28,
+          edad_max: 40,
           genero: "masculino",
-          profesion: "profesional_deportivo",
-          intereses: ["running", "fitness", "competencias"],
+          profesion: "atleta_profesional",
+          intereses: ["ciclismo", "surf", "trail_running"],
+          nivel_economico: "alto"
+        },
+        {
+          pais: "Costa Rica",
+          edad_min: 22,
+          edad_max: 30,
+          genero: "femenino",
+          profesion: "instructor_fitness",
+          intereses: ["yoga", "crossfit", "tecnologia"],
           nivel_economico: "medio-alto"
         },
         {
           pais: "Costa Rica",
-          edad_min: 18,
-          edad_max: 24,
-          genero: "femenino",
-          profesion: "estudiante_universitaria",
-          intereses: ["fitness", "redes_sociales", "moda_deportiva"],
-          nivel_economico: "medio"
-        },
-        {
-          pais: "Costa Rica",
-          edad_min: 40,
-          edad_max: 55,
+          edad_min: 35,
+          edad_max: 50,
           genero: "ambos",
-          profesion: "ejecutivo",
-          intereses: ["salud", "bienestar", "running_casual"],
+          profesion: "ejecutivo_activo",
+          intereses: ["salud", "outdoor", "gadgets"],
           nivel_economico: "alto"
         }
       ]
@@ -740,24 +696,23 @@ db.bitacora_solicitudes.insertOne({
     cantidad_mensajes: 3,
     tonos_requeridos: ["profesional", "casual", "motivacional"],
     
-    timestamp_solicitud: ISODate("2024-11-06T10:15:00Z")
+    timestamp_solicitud: ISODate("2025-01-15T10:15:00Z")
   },
   
-  // Body enviado a la AI (OpenAI)
   ai_request_body: {
     model: "gpt-4-turbo",
     messages: [
       {
         role: "system",
-        content: "Eres un experto en marketing digital que crea mensajes publicitarios personalizados por segmento poblacional."
+        content: "Eres un experto en marketing digital tech que crea mensajes personalizados por segmento."
       },
       {
         role: "user",
         content: `Genera 3 mensajes publicitarios para:
 
-Producto/Campaña: Zapatos deportivos Nike X-Speed para corredores costarricenses, enfoque en comodidad, velocidad y terrenos variados
+Producto/Campaña: Smartwatch Samsung Galaxy Watch Pro para deportistas extremos costarricenses, resistencia agua IP68, GPS multideporte
 
-Segmento poblacional: País: Costa Rica, Edad: 25-35, Género: masculino, Profesión: profesional_deportivo, Intereses: running, fitness, competencias, Nivel económico: medio-alto
+Segmento poblacional: País: Costa Rica, Edad: 28-40, Género: masculino, Profesión: atleta_profesional, Intereses: ciclismo, surf, trail_running, Nivel económico: alto
 
 INSTRUCCIONES ESPECÍFICAS:
 1. Adapta el lenguaje, tono y referencias culturales al segmento
@@ -769,7 +724,7 @@ INSTRUCCIONES ESPECÍFICAS:
 
 Tonos a usar: profesional, casual, motivacional
 
-IMPORTANTE: Los mensajes deben ser DIFERENTES entre sí, no variaciones del mismo mensaje.
+IMPORTANTE: Los mensajes deben ser DIFERENTES entre sí.
 
 Responde en formato JSON:
 {
@@ -779,8 +734,8 @@ Responde en formato JSON:
       "texto": "mensaje adaptado al segmento",
       "tono": "profesional",
       "call_to_action": "texto_cta",
-      "emojis_usados": ["🏃", "⚡"],
-      "justificacion": "por qué este mensaje funciona para este segmento"
+      "emojis_usados": ["🚴", "⌚"],
+      "justificacion": "por qué funciona"
     }
   ]
 }`
@@ -791,49 +746,47 @@ Responde en formato JSON:
     response_format: { type: "json_object" }
   },
   
-  // Response de la AI
   ai_response: {
     mensajes: [
       {
         numero: 1,
-        texto: "Supera tus límites con Nike X-Speed. Diseñados para conquistar Chirripó y la ciudad. ⚡🏃‍♂️",
+        texto: "Domina Arenal y Tamarindo con Galaxy Watch Pro. IP68 + GPS multideporte para tus retos extremos 🏔️🌊",
         tono: "profesional",
-        call_to_action: "Conquista cualquier terreno",
-        emojis_usados: ["⚡", "🏃‍♂️"],
-        justificacion: "Referencia al Chirripó (icono running CR), enfoque en versatilidad terreno"
+        call_to_action: "Conquista cada terreno",
+        emojis_usados: ["🏔️", "🌊"],
+        justificacion: "Referencia a spots icónicos CR (Arenal, Tamarindo), destaca specs técnicas"
       },
       {
         numero: 2,
-        texto: "¿Maratón o trail? X-Speed te lleva más lejos. Comodidad que transforma cada zancada 🔥",
+        texto: "¿Trail en Chirripó o surf en Jacó? Watch Pro se adapta a tu ritmo. Resistencia total 💪⌚",
         tono: "casual",
-        call_to_action: "Llega más lejos",
-        emojis_usados: ["🔥"],
-        justificacion: "Lenguaje directo, pregunta que conecta con su práctica deportiva"
+        call_to_action: "Cambia de deporte sin límites",
+        emojis_usados: ["💪", "⌚"],
+        justificacion: "Pregunta conecta con variedad deportiva del atleta CR"
       },
       {
         numero: 3,
-        texto: "Tu próximo PR empieza aquí. Nike X-Speed: velocidad, comodidad, rendimiento. 🏆💪",
+        texto: "Tu próximo récord empieza en tu muñeca. Galaxy Watch Pro: precisión + resistencia extrema 🚴🏆",
         tono: "motivacional",
-        call_to_action: "Alcanza tu mejor marca",
-        emojis_usados: ["🏆", "💪"],
-        justificacion: "PR (Personal Record) es término conocido en comunidad running, motivacional"
+        call_to_action: "Supera tus límites",
+        emojis_usados: ["🚴", "🏆"],
+        justificacion: "Motivacional para atletas competitivos, enfoque en performance"
       }
     ]
   },
   
-  // Metadata de ejecución
   metadata: {
     segmento_procesado: {
       pais: "Costa Rica",
-      edad_min: 25,
-      edad_max: 35,
+      edad_min: 28,
+      edad_max: 40,
       genero: "masculino",
-      profesion: "profesional_deportivo"
+      profesion: "atleta_profesional"
     },
     
-    tokens_consumidos: 385,
-    costo_estimado_usd: 0.0039,
-    tiempo_generacion_ms: 4200,
+    tokens_usados: 410,
+    costo_estimado_usd: 0.0041,
+    tiempo_generacion_ms: 4350,
     
     validaciones: {
       longitud_mensajes: "OK",
@@ -846,74 +799,70 @@ Responde en formato JSON:
     intentos: 1
   },
   
-  // Cliente que hizo la solicitud
   cliente_info: {
     client_name: "promptcrm_client",
     origen_namespace: "promptcrm",
     ip_origen: "10.0.2.45"
   },
   
-  created_at: ISODate("2024-11-06T10:15:04Z")
+  created_at: ISODate("2025-01-15T10:15:04Z")
 });
 
-// Ejemplo de solicitud con MÚLTIPLES segmentos
 db.bitacora_solicitudes.insertOne({
-  solicitud_id: "req_20241106_002",
+  id_request: "req_20250115_002",
   tool_name: "generateCampaignMessages",
   
   request: {
-    campana_id: "camp_2024_zapatos_running",
-    descripcion_campana: "Zapatos deportivos Nike X-Speed",
+    campana_id: "camp_2025_tech_smartwatch",
+    descripcion_campana: "Smartwatch Samsung Galaxy Watch Pro",
     publico_meta: {
       segmentos: [
-        { pais: "Costa Rica", edad_min: 25, edad_max: 35, genero: "masculino" },
-        { pais: "Costa Rica", edad_min: 18, edad_max: 24, genero: "femenino" },
-        { pais: "Costa Rica", edad_min: 40, edad_max: 55, genero: "ambos" }
+        { pais: "Costa Rica", edad_min: 28, edad_max: 40, genero: "masculino" },
+        { pais: "Costa Rica", edad_min: 22, edad_max: 30, genero: "femenino" },
+        { pais: "Costa Rica", edad_min: 35, edad_max: 50, genero: "ambos" }
       ]
     }
   },
   
-  // Array de respuestas (una por segmento)
   resultados_por_segmento: [
     {
       segmento_index: 0,
-      segmento: { pais: "Costa Rica", edad_min: 25, edad_max: 35, genero: "masculino" },
+      segmento: { pais: "Costa Rica", edad_min: 28, edad_max: 40, genero: "masculino" },
       mensajes: [/* ... */],
-      tokens_consumidos: 385,
-      tiempo_ms: 4200
+      tokens_usados: 410,
+      tiempo_ms: 4350
     },
     {
       segmento_index: 1,
-      segmento: { pais: "Costa Rica", edad_min: 18, edad_max: 24, genero: "femenino" },
+      segmento: { pais: "Costa Rica", edad_min: 22, edad_max: 30, genero: "femenino" },
       mensajes: [/* ... */],
-      tokens_consumidos: 410,
-      tiempo_ms: 4500
+      tokens_usados: 425,
+      tiempo_ms: 4600
     },
     {
       segmento_index: 2,
-      segmento: { pais: "Costa Rica", edad_min: 40, edad_max: 55, genero: "ambos" },
+      segmento: { pais: "Costa Rica", edad_min: 35, edad_max: 50, genero: "ambos" },
       mensajes: [/* ... */],
-      tokens_consumidos: 395,
-      tiempo_ms: 4100
+      tokens_usados: 405,
+      tiempo_ms: 4200
     }
   ],
   
   resumen: {
     total_segmentos: 3,
     total_mensajes: 9,
-    tokens_totales: 1190,
-    costo_total_usd: 0.0119,
-    tiempo_total_ms: 12800
+    tokens_totales: 1240,
+    costo_total_usd: 0.0124,
+    tiempo_total_ms: 13150
   },
   
-  created_at: ISODate("2024-11-06T10:20:00Z")
+  created_at: ISODate("2025-01-15T10:20:00Z")
 });
 
 
 // ============================================
 // COLLECTION 5: integraciones_api
 // ============================================
-// ✅ YA CORRECTO: Múltiples providers
 
 db.integraciones_api.insertMany([
   {
@@ -1070,27 +1019,26 @@ db.integraciones_api.insertMany([
 // ============================================
 // COLLECTION 6: campana_mensajes
 // ============================================
-// Collection para almacenar resultados del tool generateCampaignMessages
 
 db.campana_mensajes.insertOne({
-  campana_id: "camp_2024_zapatos_running",
-  descripcion_campana: "Zapatos deportivos Nike X-Speed para corredores costarricenses",
+  campana_id: "camp_2025_tech_smartwatch",
+  descripcion_campana: "Smartwatch Samsung Galaxy Watch Pro para deportistas extremos costarricenses",
   
   publico_meta_original: {
     segmentos: [
       {
         pais: "Costa Rica",
-        edad_min: 25,
-        edad_max: 35,
+        edad_min: 28,
+        edad_max: 40,
         genero: "masculino",
-        profesion: "profesional_deportivo"
+        profesion: "atleta_profesional"
       },
       {
         pais: "Costa Rica",
-        edad_min: 18,
-        edad_max: 24,
+        edad_min: 22,
+        edad_max: 30,
         genero: "femenino",
-        profesion: "estudiante_universitaria"
+        profesion: "instructor_fitness"
       }
     ]
   },
@@ -1099,82 +1047,82 @@ db.campana_mensajes.insertOne({
     {
       segmento_poblacional: {
         pais: "Costa Rica",
-        edad_min: 25,
-        edad_max: 35,
+        edad_min: 28,
+        edad_max: 40,
         genero: "masculino",
-        profesion: "profesional_deportivo"
+        profesion: "atleta_profesional"
       },
       
-      descripcion_segmento: "País: Costa Rica, Edad: 25-35, Género: masculino, Profesión: profesional_deportivo",
+      descripcion_segmento: "País: Costa Rica, Edad: 28-40, Género: masculino, Profesión: atleta_profesional",
       
       mensajes: [
         {
           numero: 1,
-          texto: "Supera tus límites con Nike X-Speed. Diseñados para conquistar Chirripó y la ciudad. ⚡🏃‍♂️",
+          texto: "Domina Arenal y Tamarindo con Galaxy Watch Pro. IP68 + GPS multideporte 🏔️🌊",
           tono: "profesional",
-          call_to_action: "Conquista cualquier terreno",
-          emojis_usados: ["⚡", "🏃‍♂️"],
-          justificacion: "Referencia al Chirripó (icono running CR)",
-          generado_at: ISODate("2024-11-06T10:15:04Z"),
-          tokens_estimados: 20
-        },
-        {
-          numero: 2,
-          texto: "¿Maratón o trail? X-Speed te lleva más lejos. Comodidad que transforma cada zancada 🔥",
-          tono: "casual",
-          call_to_action: "Llega más lejos",
-          generado_at: ISODate("2024-11-06T10:15:04Z"),
+          call_to_action: "Conquista cada terreno",
+          emojis_usados: ["🏔️", "🌊"],
+          justificacion: "Referencia a spots icónicos CR",
+          generado_at: ISODate("2025-01-15T10:15:04Z"),
           tokens_estimados: 18
         },
         {
-          numero: 3,
-          texto: "Tu próximo PR empieza aquí. Nike X-Speed: velocidad, comodidad, rendimiento. 🏆💪",
-          tono: "motivacional",
-          call_to_action: "Alcanza tu mejor marca",
-          generado_at: ISODate("2024-11-06T10:15:04Z"),
+          numero: 2,
+          texto: "¿Trail en Chirripó o surf en Jacó? Watch Pro se adapta a tu ritmo 💪⌚",
+          tono: "casual",
+          call_to_action: "Cambia de deporte sin límites",
+          generado_at: ISODate("2025-01-15T10:15:04Z"),
           tokens_estimados: 16
+        },
+        {
+          numero: 3,
+          texto: "Tu próximo récord empieza en tu muñeca. Galaxy Watch Pro 🚴🏆",
+          tono: "motivacional",
+          call_to_action: "Supera tus límites",
+          generado_at: ISODate("2025-01-15T10:15:04Z"),
+          tokens_estimados: 14
         }
       ],
       
-      timestamp: ISODate("2024-11-06T10:15:04Z")
+      timestamp: ISODate("2025-01-15T10:15:04Z")
     },
     
     {
       segmento_poblacional: {
         pais: "Costa Rica",
-        edad_min: 18,
-        edad_max: 24,
+        edad_min: 22,
+        edad_max: 30,
         genero: "femenino",
-        profesion: "estudiante_universitaria"
+        profesion: "instructor_fitness"
       },
       
-      descripcion_segmento: "País: Costa Rica, Edad: 18-24, Género: femenino, Profesión: estudiante_universitaria",
+      descripcion_segmento: "País: Costa Rica, Edad: 22-30, Género: femenino, Profesión: instructor_fitness",
       
       mensajes: [
         {
           numero: 1,
-          texto: "Corre con estilo 💕 X-Speed combina moda y rendimiento. Perfectos para tu vida activa ✨",
+          texto: "Tecnología + estilo 💫 Galaxy Watch Pro para tu vida fitness activa ⌚✨",
           tono: "profesional",
-          generado_at: ISODate("2024-11-06T10:15:08Z"),
-          tokens_estimados: 17
+          generado_at: ISODate("2025-01-15T10:15:08Z"),
+          tokens_estimados: 15
         },
         {
           numero: 2,
-          texto: "De la U al gym sin cambiar de look 👟✨ Nike X-Speed, tu mejor compañero de aventuras",
+          texto: "De la clase al trail sin cambiar de look 💪 Watch Pro tu compañero perfecto",
           tono: "casual",
-          generado_at: ISODate("2024-11-06T10:15:08Z"),
-          tokens_estimados: 19
+          generado_at: ISODate("2025-01-15T10:15:08Z"),
+          tokens_estimados: 17
         },
         {
           numero: 3,
-          texto: "¡Siente la libertad! X-Speed para chicas que no se detienen. Comodidad + estilo 🔥💪",
+          texto: "¡Impulsa tu rendimiento! Galaxy Watch Pro: métricas pro + diseño elegante 🔥⌚",
           tono: "motivacional",
-          generado_at: ISODate("2024-11-06T10:15:08Z"),
-          tokens_estimados: 18
+          generado_at: ISODate("2025-01-15T10:15:08Z"),
+          tokens_estimados: 16
         }
       ],
       
-      timestamp: ISODate("2024-11-06T10:15:08Z")
+      timestamp: ISODate("2025-01-15T10:15:08Z")
     }
   ],
   
@@ -1182,12 +1130,12 @@ db.campana_mensajes.insertOne({
     total_segmentos: 2,
     total_mensajes: 6,
     mensajes_por_segmento: 3,
-    tokens_totales_estimados: 108,
-    fecha_generacion: ISODate("2024-11-06T10:15:08Z")
+    tokens_totales_estimados: 96,
+    fecha_generacion: ISODate("2025-01-15T10:15:08Z")
   },
   
-  created_at: ISODate("2024-11-06T10:15:08Z"),
-  updated_at: ISODate("2024-11-06T10:15:08Z")
+  created_at: ISODate("2025-01-15T10:15:08Z"),
+  updated_at: ISODate("2025-01-15T10:15:08Z")
 });
 
 
@@ -1200,7 +1148,7 @@ db.contenido_generado.createIndex({ campana_id: 1 });
 db.contenido_generado.createIndex({ cliente_id: 1 });
 db.contenido_generado.createIndex({ "metadata.formato": 1 });
 db.contenido_generado.createIndex({ hashtags: 1 });
-db.contenido_generado.createIndex({ "ai_metadata.provider": 1 });
+db.contenido_generado.createIndex({ "ai_metadata.provider_ia": 1 });
 db.contenido_generado.createIndex({ created_at: -1 });
 db.contenido_generado.createIndex({ "aprobacion.estado": 1 });
 
@@ -1208,7 +1156,7 @@ db.contenido_generado.createIndex({ "aprobacion.estado": 1 });
 db.log_llamadas_api.createIndex({ servicio: 1, created_at: -1 });
 db.log_llamadas_api.createIndex({ "metadata.campana_id": 1 });
 db.log_llamadas_api.createIndex({ "response.status": 1 });
-db.log_llamadas_api.createIndex({ latencia_ms: -1 });
+db.log_llamadas_api.createIndex({ tiempo_ms: -1 });
 
 // bitacora_solicitudes
 db.bitacora_solicitudes.createIndex({ "request.campana_id": 1 });
