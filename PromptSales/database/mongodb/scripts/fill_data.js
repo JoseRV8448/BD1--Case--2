@@ -41,19 +41,19 @@ async function fillData() {
     contenidos.push({
       tipo: "imagen",
       url: `s3://promptsales/img${i}.jpg`,
-      descripcion_amplia: descripcion,
+      descripcion_contenido: descripcion,
       hashtags: [`#${categoria}`, "#marketing", "#costarica", "#2025", "#promocion"],
       // ✅ EMBEDDING SERÁ GENERADO DESPUÉS (placeholder por ahora)
-      vector_embedding: null,
+      embedding: null,
       prompt_instrucciones: {
         mensaje_core: `Vender productos de ${categoria} a público objetivo`,
         tono: tonos[i % 5],
         objetivos: ["generar_interes", "mostrar_calidad", "crear_urgencia"],
         restricciones: ["no_texto_pequeño", "incluir_marca", "colores_corporativos"]
       },
-      ai_provider: provider,
+      provider_ia: provider,
       modelo: provider === "OpenAI" ? "dall-e-3" : "modelo-base",
-      tokens_consumidos: Math.floor(Math.random() * 2000) + 500,
+      tokens_usados: Math.floor(Math.random() * 2000) + 500,
       created_at: new Date(2024, 9, Math.floor(Math.random() * 28) + 1)
     });
   }
@@ -67,12 +67,12 @@ async function fillData() {
 
   const batchSize = 20; // OpenAI limita requests
   const insertedDocs = await db.collection('contenido_generado')
-    .find({ vector_embedding: null })
+    .find({ embedding: null })
     .toArray();
 
   for (let i = 0; i < insertedDocs.length; i += batchSize) {
     const batch = insertedDocs.slice(i, i + batchSize);
-    const textos = batch.map(doc => doc.descripcion_amplia);
+    const textos = batch.map(doc => doc.descripcion_contenido);
 
     console.log(`   Procesando batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(insertedDocs.length/batchSize)}...`);
 
@@ -85,7 +85,7 @@ async function fillData() {
     for (let j = 0; j < batch.length; j++) {
       await db.collection('contenido_generado').updateOne(
         { _id: batch[j]._id },
-        { $set: { vector_embedding: embeddingRes.data[j].embedding } }
+        { $set: {embedding: embeddingRes.data[j].embedding } }
       );
     }
   }

@@ -21,7 +21,7 @@ async function indexVectors() {
 
   // Obtener documentos que ya tienen embeddings
   const contenidos = await db.collection('contenido_generado')
-    .find({ vector_embedding: { $exists: true, $ne: null } })
+    .find({ embeddings: { $exists: true, $ne: null } })
     .toArray();
   
   console.log(`📊 ${contenidos.length} documentos encontrados`);
@@ -39,9 +39,9 @@ async function indexVectors() {
     // Preparar vectores
     const vectors = batch.map((doc) => ({
       id: doc._id.toString(),
-      values: doc.vector_embedding,
+      values: doc.embeddings,
       metadata: {
-        descripcion: doc.descripcion_amplia.substring(0, 200),
+        descripcion: doc.descripcion_contenido.substring(0, 200),
         hashtags: doc.hashtags.join(',')
       }
     }));

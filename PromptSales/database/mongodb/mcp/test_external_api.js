@@ -42,7 +42,7 @@ async function testExternalAPI() {
           "Content-Type": "application/json"
         },
         body: request_body,
-        timestamp_envio: inicio
+        fecha_envio: inicio
       },
       response: {
         status: 200,
@@ -52,9 +52,9 @@ async function testExternalAPI() {
           content: completion.choices[0].message.content,
           tokens_usados: completion.usage.total_tokens
         },
-        timestamp_recepcion: fin
+        fecha_recepcion: fin
       },
-      latencia_ms: latencia
+      tiempo_ms: latencia
     };
 
     // ✅ GUARDAR EN MONGODB
@@ -72,9 +72,9 @@ async function testExternalAPI() {
     await db.collection('log_llamadas_api').insertOne({
       servicio: "OpenAI",
       endpoint: "/v1/chat/completions",
-      request: { method: "POST", body: request_body, timestamp_envio: inicio },
+      request: { method: "POST", body: request_body, fecha_envio: inicio },
       response: { status: error.status || 500, error: error.message },
-      latencia_ms: new Date() - inicio
+      tiempo_ms: new Date() - inicio
     });
   }
 
