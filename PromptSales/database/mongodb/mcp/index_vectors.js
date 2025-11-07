@@ -1,6 +1,6 @@
 // Indexar vectores en Pinecone
 const { MongoClient } = require('mongodb');
-const { PineconeClient } = require('@pinecone-database/pinecone');
+const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAI } = require('openai');
 require('dotenv').config();
 
@@ -10,44 +10,44 @@ async function indexVectors() {
   await mongoClient.connect();
   const db = mongoClient.db('PromptContent');
 
-  const pinecone = new PineconeClient();
-  await pinecone.init({
-    apiKey: process.env.PINECONE_API_KEY,
-    environment: process.env.PINECONE_ENVIRONMENT
+  const pinecone = new Pinecone({
+    apiKey: process.env.PINECONE_API_KEY
   });
-  const index = pinecone.Index(process.env.PINECONE_INDEX);
+  const index = pinecone.index(process.env.PINECONE_INDEX);
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   console.log('🚀 Iniciando indexación...');
 
-  // Obtener documentos
-  const contenidos = await db.collection('contenido_generado').find({}).toArray();
+  // Obtener documentos que ya tienen embeddings
+  const contenidos = await db.collection('contenido_generado')
+    .find({ vector_embedding: { $exists: true, $ne: null } })
+    .toArray();
+  
   console.log(`📊 ${contenidos.length} documentos encontrados`);
+
+  if (contenidos.length === 0) {
+    console.log('❌ No hay documentos con embeddings. Ejecuta fill_data.js primero.');
+    await mongoClient.close();
+    return;
+  }
 
   // Procesar en batches de 100
   for (let i = 0; i < contenidos.length; i += 100) {
     const batch = contenidos.slice(i, i + 100);
-    
-    // Generar embeddings
-    const textos = batch.map(c => c.descripcion_amplia);
-    const embeddingRes = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: textos
-    });
 
     // Preparar vectores
-    const vectors = batch.map((doc, idx) => ({
+    const vectors = batch.map((doc) => ({
       id: doc._id.toString(),
-      values: embeddingRes.data[idx].embedding,
+      values: doc.vector_embedding,
       metadata: {
-        tipo: doc.tipo,
+        descripcion: doc.descripcion_amplia.substring(0, 200),
         hashtags: doc.hashtags.join(',')
       }
     }));
 
     // Subir a Pinecone
-    await index.upsert({ vectors });
+    await index.upsert(vectors);
     console.log(`✅ Batch ${Math.floor(i / 100) + 1} indexado`);
   }
 

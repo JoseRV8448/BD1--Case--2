@@ -1,4 +1,4 @@
-// test_external_api.js - OpenAI API 실제 연결 테스트
+// test_external_api.js 
 const { MongoClient } = require('mongodb');
 const { OpenAI } = require('openai');
 require('dotenv').config();
