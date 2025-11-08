@@ -1,33 +1,10 @@
-Diseño de promtSales de mongo
+Diseño de promtContent de mongo
 ------------------------------ 
 . CACHÉ DE CONTENIDO GENERADO
 redis
------------------------------
-# Contenido por ID (búsqueda rápida)
-content:by_id:{content_id}
-  Tipo: Hash
-  TTL: 7200 (2 horas)
-  Campos:
-    campana_id: "camp_2025_tech_smartwatch"
-    cliente_id: "1"
-    descripcion: "Smartwatch deportivo Galaxy Watch Pro..."
-    hashtags: "[\"#tech\", \"#cycling\"]"
-    url_almacenamiento: "s3://promptsales/content/img001.jpg"
-    url_thumbnail: "s3://promptsales/content/thumbnails/img001_thumb.jpg"
-    formato: "imagen"
-    aprobado: "true"
-    created_at: "2025-01-15T10:30:00Z"
 
-# Búsqueda semántica por embeddings
-content:search:{campana_id}:{query_hash}
-  Tipo: Sorted Set (por score de similitud)
-  TTL: 3600 (1 hora)
-  Miembros:
-    "content_id_1": 0.95
-    "content_id_2": 0.87
-    "content_id_3": 0.76
-------------------------------------
-2. CACHÉ DE LLAMADAS MCP SERVERS
+-----------------------------------
+1. CACHÉ DE LLAMADAS MCP SERVERS
 redis
 # Resultados de herramientas MCP
 mcp:tool:{server}:{tool}:{params_hash}
@@ -51,7 +28,7 @@ mcp:server:status:{server_name}
     avg_response_time: "350"
     errors_last_hour: "2"
 --------------------------------------------------------------------
-🤖 3. CACHÉ DE GENERACIONES AI (TOKEN OPTIMIZATION)
+ 2. CACHÉ DE GENERACIONES AI (TOKEN OPTIMIZATION)
 redis
 # Generaciones de mensajes por segmento
 ai:campaign_messages:{campana_id}:{segmento_hash}
@@ -72,33 +49,9 @@ ai:generation:meta:{campana_id}:{segmento_hash}
     tiempo_total_ms: "13150"
     segmentos_procesados: "3"
     fecha_generacion: "2025-01-15T10:20:00Z"
-------------------------------------------------------------------------- 
-4. CACHÉ DE MÉTRICAS Y ANALYTICS
-redis
-# Métricas de contenido por campaña
-metrics:content:{campana_id}
-  Tipo: Hash
-  TTL: 900 (15 minutos - actualización frecuente)
-  Campos:
-    total_contenido: "156"
-    contenido_aprobado: "142"
-    contenido_pendiente: "14"
-    engagement_promedio: "0.052"
-    veces_usado_total: "845"
-    ultima_actualizacion: "2025-01-20T10:00:00Z"
 
-# Estadísticas de uso por cliente
-metrics:client:{cliente_id}:daily:{yyyy-mm-dd}
-  Tipo: Hash
-  TTL: 172800 (48 horas)
-  Campos:
-    requests_total: "245"
-    tokens_consumidos: "125000"
-    cost_total_usd: "1.25"
-    tools_mas_usadas: "getContent,generateCampaignMessages"
-    avg_response_time: "420"
 -----------------------------------------------------------
-5. CACHÉ DE CONFIGURACIÓN Y METADATA
+3. CACHÉ DE CONFIGURACIÓN Y METADATA
 redis
 # Configuración de integraciones API
 config:api:{provider_name}
@@ -120,7 +73,7 @@ config:client:{client_name}
     max_requests_hora: "20000"
     estado: "activo"
 ---------------------------------------------------------------------------------------
-6. CACHÉ DE ESTADOS Y SINCRONIZACIÓN
+4. CACHÉ DE ESTADOS Y SINCRONIZACIÓN
 redis
 # Control de deltas para ETL
 etl:last_sync:{collection}
@@ -145,49 +98,3 @@ queue:ai_generation:{priority}
   Miembros:
     '{"campana_id":"camp_2025_tech","segmento":"CR_28-40_M"}'
     '{"campana_id":"camp_2025_fitness","segmento":"CR_22-30_F"}'
---------------------------------------------------------------------------------------------
- 7. RATE LIMITING Y THROTTLING
-redis
-# Rate limiting por cliente y servicio
-ratelimit:{client}:{service}:minute:{yyyy-mm-dd-HH-MM}
-  Tipo: String (contador)
-  TTL: 120 (2 minutos - buffer)
-  Valor: "45"
-
-# Rate limiting por herramienta MCP
-ratelimit:mcp:{tool}:{client}:hour:{yyyy-mm-dd-HH}
-  Tipo: String (contador)
-  TTL: 7200 (2 horas)
-  Valor: "156"
-
-# Circuit breaker status
-circuit:breaker:{service}
-  Tipo: Hash
-  TTL: 300 (5 minutos)
-  Campos:
-    status: "closed"  # closed, open, half-open
-    failures: "3"
-    last_failure: "2025-01-15T10:25:00Z"
-    next_check: "2025-01-15T10:28:00Z"
------------------------------------------------------------------------------------------------------
-8. CACHÉ PARA DASHBOARDS Y REPORTES
-redis
-# Datos agregados para dashboards
-dashboard:campaign_performance:{campana_id}:daily:{yyyy-mm-dd}
-  Tipo: Hash
-  TTL: 2592000 (30 días)
-  Campos:
-    contenido_generado: "15"
-    mensajes_generados: "45"
-    tokens_consumidos: "12500"
-    cost_total: "0.125"
-    avg_engagement: "0.048"
-
-# Top contenido por engagement
-leaderboard:content:{campana_id}:engagement
-  Tipo: Sorted Set
-  TTL: 3600 (1 hora)
-  Miembros:
-    "content_id_1": 0.089
-    "content_id_2": 0.076
-    "content_id_3": 0.065
