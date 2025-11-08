@@ -1,3 +1,4 @@
+
 ------------ TABLAS DE CATÁLOGOS --------------
 
 -- Catálogo de países
@@ -20,7 +21,6 @@ CREATE TABLE nv_estados (
 )
 
 -- Ciudades con coordenadas geográficas
--- TODO: Verificar performance de índice espacial con volumen alto
 CREATE TABLE nv_ciudades (
     ciudadId INT IDENTITY(1,1) PRIMARY KEY,
     estadoId INT NOT NULL,
@@ -78,8 +78,8 @@ CREATE TABLE nv_tipos_interaccion (
     descripcion NVARCHAR(200)
 )
 
--- Canales de comunicación con métricas
--- Incluye email, WhatsApp, SMS, llamadas, etc
+-- Canales de comunicación con métricas e integración API
+
 CREATE TABLE nv_canales (
     canalId INT IDENTITY(1,1) PRIMARY KEY,
     nombreCanal NVARCHAR(50) NOT NULL,
@@ -94,6 +94,13 @@ CREATE TABLE nv_canales (
     tiempoRespuestaPromedioMin INT,
     soportaArchivos BIT DEFAULT 0,
     limiteMensajeCaracteres INT,
+    urlWebhook NVARCHAR(500),
+    apiKey VARBINARY(256), -- Encriptado
+    rateLimitPorMinuto INT,
+    rateLimitPorHora INT,
+    rateLimitPorDia INT,
+    timeoutSegundos INT DEFAULT 30,
+    reintentosFalloMaximo INT DEFAULT 3,
     activo BIT DEFAULT 1
 )
 
@@ -126,7 +133,6 @@ CREATE TABLE nv_tipos_log (
 
 ------------- TABLAS PRINCIPALES ----------------
 
-
 -- Direcciones físicas con geolocalización
 CREATE TABLE direcciones (
     direccionId INT IDENTITY(1,1) PRIMARY KEY,
@@ -155,19 +161,25 @@ CREATE TABLE cuentas_usuario (
 )
 CREATE INDEX idx_usuarios_nombre ON cuentas_usuario(nombreUsuario)
 
--- Emails y teléfonos de usuarios
-CREATE TABLE contactos_usuario (
+-- contactos de usuarios Y clientes
+CREATE TABLE contactos (
     contactoId INT IDENTITY(1,1) PRIMARY KEY,
-    usuarioId INT NOT NULL,
+    entidadTipo NVARCHAR(20) NOT NULL CHECK (entidadTipo IN ('usuario', 'cliente')),
+    entidadId INT NOT NULL, -- usuarioId o clienteId según entidadTipo
     tipoContactoId INT NOT NULL,
     valorContacto NVARCHAR(255) NOT NULL,
+    extension NVARCHAR(10), -- Para teléfonos
     esPrincipal BIT DEFAULT 0,
+    esVerificado BIT DEFAULT 0,
+    fechaVerificacion DATETIME2 NULL,
+    aceptaMarketing BIT DEFAULT 0, -- Solo aplica para clientes
     createdAt DATETIME2 DEFAULT GETDATE(),
     deleted BIT DEFAULT 0,
-    CONSTRAINT fk_contactos_usuario_usuario FOREIGN KEY (usuarioId) REFERENCES cuentas_usuario(usuarioId) ON DELETE CASCADE,
-    CONSTRAINT fk_contactos_usuario_tipo FOREIGN KEY (tipoContactoId) REFERENCES nv_tipos_contacto(tipoId)
+    CONSTRAINT fk_contactos_tipo FOREIGN KEY (tipoContactoId) REFERENCES nv_tipos_contacto(tipoId)
 )
-CREATE INDEX idx_contactos_usuario ON contactos_usuario(usuarioId)
+CREATE INDEX idx_contactos_entidad ON contactos(entidadTipo, entidadId)
+CREATE INDEX idx_contactos_valor ON contactos(valorContacto)
+CREATE INDEX idx_contactos_verificado ON contactos(esVerificado, aceptaMarketing)
 
 -- Fuentes de leads configurables
 CREATE TABLE fuentes_lead (
@@ -183,7 +195,6 @@ CREATE TABLE fuentes_lead (
 )
 
 -- Referencias de campañas sincronizadas desde PromptAds
--- Se actualiza vía ETL programado
 CREATE TABLE referencias_campanas (
     referenciaId INT IDENTITY(1,1) PRIMARY KEY,
     utmCampaign NVARCHAR(100) NOT NULL UNIQUE,
@@ -198,21 +209,20 @@ CREATE INDEX idx_ref_campanas_fechas ON referencias_campanas(fechaInicio, fechaF
 CREATE INDEX idx_ref_campanas_activa ON referencias_campanas(activa, ultimaSincronizacionETL)
 
 -- Tabla principal de clientes
--- Soporta tanto B2B como B2C
+
 CREATE TABLE clientes (
     clienteId INT IDENTITY(1,1) PRIMARY KEY,
     tipoClienteId INT NOT NULL,
     fuenteLeadId INT,
     estadoClienteId INT NOT NULL,
     industriaId INT,
-    direccionId INT,
     nombreEmpresa NVARCHAR(200),
     sitioWeb NVARCHAR(255),
     notas NVARCHAR(MAX),
     nombreContacto NVARCHAR(100),
     apellidoContacto NVARCHAR(100),
     cargoContacto NVARCHAR(100),
-    identificacionEncrypted VARBINARY(256),  -- Encriptado por cumplimiento GDPR
+    identificacionEncrypted VARBINARY(256),
     creadoPor INT,
     modificadoPor INT,
     createdAt DATETIME2 DEFAULT GETDATE(),
@@ -222,34 +232,32 @@ CREATE TABLE clientes (
     CONSTRAINT fk_clientes_fuente FOREIGN KEY (fuenteLeadId) REFERENCES fuentes_lead(fuenteId),
     CONSTRAINT fk_clientes_estado FOREIGN KEY (estadoClienteId) REFERENCES nv_estados_cliente(estadoId),
     CONSTRAINT fk_clientes_industria FOREIGN KEY (industriaId) REFERENCES nv_industrias(industriaId),
-    CONSTRAINT fk_clientes_direccion FOREIGN KEY (direccionId) REFERENCES direcciones(direccionId),
     CONSTRAINT fk_clientes_creado_por FOREIGN KEY (creadoPor) REFERENCES cuentas_usuario(usuarioId),
     CONSTRAINT fk_clientes_modificado_por FOREIGN KEY (modificadoPor) REFERENCES cuentas_usuario(usuarioId)
 )
 CREATE INDEX idx_clientes_empresa ON clientes(nombreEmpresa)
 CREATE INDEX idx_clientes_contacto ON clientes(nombreContacto, apellidoContacto)
+CREATE INDEX idx_clientes_estado ON clientes(estadoClienteId)
+CREATE INDEX idx_clientes_tipo ON clientes(tipoClienteId)
 
--- Emails, teléfonos y redes sociales de clientes
-CREATE TABLE contactos_cliente (
-    contactoId INT IDENTITY(1,1) PRIMARY KEY,
+-- NUEVA: Relación many-to-many entre clientes y direcciones
+CREATE TABLE direcciones_cliente (
+    relacionId INT IDENTITY(1,1) PRIMARY KEY,
     clienteId INT NOT NULL,
-    tipoContactoId INT NOT NULL,
-    valorContacto NVARCHAR(255) NOT NULL,
-    extension NVARCHAR(10),
+    direccionId INT NOT NULL,
     esPrincipal BIT DEFAULT 0,
-    esVerificado BIT DEFAULT 0,
-    fechaVerificacion DATETIME2 NULL,
-    aceptaMarketing BIT DEFAULT 0,  -- Consentimiento GDPR
+    tipoUbicacion NVARCHAR(50),
     createdAt DATETIME2 DEFAULT GETDATE(),
     deleted BIT DEFAULT 0,
-    CONSTRAINT fk_contactos_cliente FOREIGN KEY (clienteId) REFERENCES clientes(clienteId) ON DELETE CASCADE,
-    CONSTRAINT fk_contactos_tipo FOREIGN KEY (tipoContactoId) REFERENCES nv_tipos_contacto(tipoId)
+    CONSTRAINT fk_dir_cliente_cliente FOREIGN KEY (clienteId) REFERENCES clientes(clienteId) ON DELETE CASCADE,
+    CONSTRAINT fk_dir_cliente_direccion FOREIGN KEY (direccionId) REFERENCES direcciones(direccionId)
 )
-CREATE INDEX idx_contactos_cliente ON contactos_cliente(clienteId)
-CREATE INDEX idx_contactos_valor ON contactos_cliente(valorContacto)
+CREATE INDEX idx_dir_cliente_cliente ON direcciones_cliente(clienteId)
+CREATE INDEX idx_dir_cliente_direccion ON direcciones_cliente(direccionId)
+
+-- NOTA: contactos_cliente ELIMINADA - usar tabla contactos unificada
 
 -- Preferencias de contacto por cliente
--- Define cómo y cuándo contactar a cada cliente
 CREATE TABLE preferencias_contacto_cliente (
     preferenciaId INT IDENTITY(1,1) PRIMARY KEY,
     clienteId INT NOT NULL,
@@ -271,7 +279,6 @@ CREATE INDEX idx_preferencias_cliente ON preferencias_contacto_cliente(clienteId
 CREATE INDEX idx_preferencias_canal ON preferencias_contacto_cliente(canalId)
 
 -- Bloqueos de contacto
--- Para manejar opt-outs y restricciones legales
 CREATE TABLE bloqueos_contacto_cliente (
     bloqueoId INT IDENTITY(1,1) PRIMARY KEY,
     clienteId INT NOT NULL,
@@ -304,7 +311,6 @@ CREATE INDEX idx_ventanas_cliente_dia ON ventanas_contacto_cliente(clienteId, di
 
 
 ------------ MÉTRICAS DE COMPORTAMIENTO --------------
--- insert-only
 
 CREATE TABLE snapshots_metricas_cliente (
     snapshotId BIGINT IDENTITY(1,1) PRIMARY KEY,
@@ -367,7 +373,6 @@ CREATE INDEX idx_snapshots_canal_id ON snapshots_interacciones_por_canal(canalId
 
 ----------------- LEADS Y TRACKING -------------------
 
-
 CREATE TABLE leads (
     leadId INT IDENTITY(1,1) PRIMARY KEY,
     clienteId INT NOT NULL,
@@ -375,19 +380,19 @@ CREATE TABLE leads (
     estadoLeadId INT NOT NULL,
     puntajeLead INT DEFAULT 0,
     
-    -- Parámetros UTM para tracking de campañas
+    -- Parámetros UTM
     utmSource NVARCHAR(100),
     utmMedium NVARCHAR(100),
     utmCampaign NVARCHAR(100),
     utmTerm NVARCHAR(100),
     utmContent NVARCHAR(100),
     
-    -- Click IDs de diferentes plataformas
-    gclid NVARCHAR(255),  -- Google Ads
-    fbclid NVARCHAR(255), -- Facebook
-    msclkid NVARCHAR(255), -- Microsoft Ads
-    liClickId NVARCHAR(255), -- LinkedIn
-    ttclid NVARCHAR(255), -- TikTok
+    -- Click IDs
+    gclid NVARCHAR(255),
+    fbclid NVARCHAR(255),
+    msclkid NVARCHAR(255),
+    liClickId NVARCHAR(255),
+    ttclid NVARCHAR(255),
     
     -- Datos de navegación
     primeraPaginaVista NVARCHAR(500),
@@ -423,7 +428,6 @@ CREATE INDEX idx_leads_gclid ON leads(gclid)
 CREATE INDEX idx_leads_fbclid ON leads(fbclid)
 
 GO
-
 
 -- Notas adicionales sobre leads
 CREATE TABLE notas_lead (
@@ -505,7 +509,7 @@ CREATE TABLE mensajes_bot (
 )
 CREATE INDEX idx_mensajes_sesion ON mensajes_bot(sesionId)
 
--------------- - INTERACCIONES -----------------
+-------------- INTERACCIONES -----------------
 
 CREATE TABLE interacciones (
     interaccionId INT IDENTITY(1,1) PRIMARY KEY,
@@ -557,7 +561,7 @@ CREATE TABLE conversiones_lead (
     clienteId INT NOT NULL,
     leadId INT NOT NULL,
     valorConversion DECIMAL(18,2) NOT NULL,
-    tipoConversion NVARCHAR(50),
+    tipoConversion NVARCHAR(50) DEFAULT 'lead_to_cliente',
     descripcion NVARCHAR(500),
     
     -- UTMs para atribución
@@ -586,7 +590,6 @@ CREATE INDEX idx_conversiones_fecha ON conversiones_lead(fechaConversion)
 CREATE INDEX idx_conversiones_utm_campaign ON conversiones_lead(utmCampaign)
 
 -- Touchpoints del customer journey
--- Para análisis de atribución multi-touch
 CREATE TABLE touchpoints_conversion (
     touchpointId INT IDENTITY(1,1) PRIMARY KEY,
     conversionId INT NOT NULL,
@@ -598,6 +601,25 @@ CREATE TABLE touchpoints_conversion (
     CONSTRAINT fk_touchpoints_interaccion FOREIGN KEY (interaccionId) REFERENCES interacciones(interaccionId)
 )
 CREATE INDEX idx_touchpoints_conversion ON touchpoints_conversion(conversionId)
+
+------------------ CAMPAÑAS Y CLIENTES --------------------
+
+CREATE TABLE campanas_cliente (
+    relacionId INT IDENTITY(1,1) PRIMARY KEY,
+    clienteId INT NOT NULL,
+    referenciaId INT NOT NULL,
+    fechaAsociacion DATETIME2 DEFAULT GETDATE(),
+    estadoEnCampana NVARCHAR(50) DEFAULT 'activo',
+    ultimaActualizacion DATETIME2 DEFAULT GETDATE(),
+    version INT DEFAULT 1, -- Control de versión optimista
+    activo BIT DEFAULT 1,
+    CONSTRAINT fk_campanas_cliente_cliente FOREIGN KEY (clienteId) REFERENCES clientes(clienteId) ON DELETE CASCADE,
+    CONSTRAINT fk_campanas_cliente_referencia FOREIGN KEY (referenciaId) REFERENCES referencias_campanas(referenciaId),
+    CONSTRAINT uq_campanas_cliente UNIQUE (clienteId, referenciaId)
+)
+CREATE INDEX idx_campanas_cliente_cliente ON campanas_cliente(clienteId)
+CREATE INDEX idx_campanas_cliente_referencia ON campanas_cliente(referenciaId)
+CREATE INDEX idx_campanas_cliente_estado ON campanas_cliente(estadoEnCampana, activo)
 
 ------------------ SISTEMA DE LOGS ---------------------
 
@@ -623,10 +645,3 @@ CREATE INDEX idx_logs_usuario ON operation_logs(usuarioId)
 CREATE INDEX idx_logs_nivel ON operation_logs(nivelLogId)
 
 GO
-
-
-
-
-
-
-
