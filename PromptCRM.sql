@@ -1,3 +1,6 @@
+USE PromptCRM
+GO
+
 
 ------------ TABLAS DE CATÁLOGOS --------------
 
