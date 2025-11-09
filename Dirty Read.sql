@@ -1,67 +1,96 @@
 ﻿USE PromptCRM
 GO
 
+-- Habilitar IDENTITY_INSERT para cada tabla y luego insertar datos
+
+SET IDENTITY_INSERT nv_tipos_cliente ON
 INSERT INTO nv_tipos_cliente (tipoId, nombreTipo, descripcion)
 VALUES 
     (1, 'Prospecto', 'Cliente potencial'),
     (2, 'Activo', 'Cliente con compras activas'),
     (3, 'Inactivo', 'Cliente sin actividad reciente')
+SET IDENTITY_INSERT nv_tipos_cliente OFF
 
+SET IDENTITY_INSERT nv_estados_cliente ON
 INSERT INTO nv_estados_cliente (estadoId, nombreEstado)
 VALUES 
     (1, 'Nuevo'),
     (2, 'En Proceso'),
     (3, 'Activo')
+SET IDENTITY_INSERT nv_estados_cliente OFF
 
+SET IDENTITY_INSERT nv_estados_lead ON
 INSERT INTO nv_estados_lead (estadoId, nombreEstado, ordenFlujo)
 VALUES 
     (1, 'Nuevo', 1),
     (2, 'Contactado', 2),
     (3, 'Calificado', 3)
+SET IDENTITY_INSERT nv_estados_lead OFF
 
+SET IDENTITY_INSERT nv_tipos_fuente_lead ON
 INSERT INTO nv_tipos_fuente_lead (tipoId, nombreTipo)
 VALUES 
     (1, 'Web'),
     (2, 'Referido'),
     (3, 'Campaña Ads')
+SET IDENTITY_INSERT nv_tipos_fuente_lead OFF
 
+SET IDENTITY_INSERT fuentes_lead ON
 INSERT INTO fuentes_lead (fuenteId, tipoFuenteId, nombreFuente, descripcion)
 VALUES 
     (1, 1, 'Sitio Web Corporativo', 'Leads desde formulario web'),
     (2, 3, 'Google Ads', 'Campañas de Google Ads')
+SET IDENTITY_INSERT fuentes_lead OFF
 
+SET IDENTITY_INSERT nv_tipos_interaccion ON
 INSERT INTO nv_tipos_interaccion (tipoId, nombreTipo, descripcion)
 VALUES 
     (1, 'Llamada', 'Llamada telefónica'),
     (2, 'Email', 'Correo electrónico'),
     (3, 'Reunión', 'Reunión presencial o virtual')
+SET IDENTITY_INSERT nv_tipos_interaccion OFF
 
+SET IDENTITY_INSERT nv_canales ON
 INSERT INTO nv_canales (canalId, nombreCanal, descripcion, esDigital, permiteAutomatizacion)
 VALUES 
     (1, 'Teléfono', 'Llamadas telefónicas', 0, 0),
     (2, 'Email', 'Correo electrónico', 1, 1),
     (3, 'WhatsApp', 'Mensajería WhatsApp', 1, 1)
+SET IDENTITY_INSERT nv_canales OFF
 
+SET IDENTITY_INSERT nv_estados_usuario ON
 INSERT INTO nv_estados_usuario (estadoId, nombreEstado)
 VALUES 
     (1, 'Activo'),
     (2, 'Inactivo')
+SET IDENTITY_INSERT nv_estados_usuario OFF
 
+SET IDENTITY_INSERT cuentas_usuario ON
 INSERT INTO cuentas_usuario (usuarioId, nombreUsuario, passwordHash, nombre, apellido, estadoUsuarioId)
 VALUES (1, 'admin.test', 0x00, 'Admin', 'Sistema', 1)
+SET IDENTITY_INSERT cuentas_usuario OFF
 
+SET IDENTITY_INSERT nv_paises ON
 INSERT INTO nv_paises (paisId, nombrePais, codigoPais)
 VALUES (1, 'Costa Rica', 'CRI')
+SET IDENTITY_INSERT nv_paises OFF
 
+SET IDENTITY_INSERT nv_estados ON
 INSERT INTO nv_estados (estadoId, paisId, nombreEstado)
 VALUES (1, 1, 'San José')
+SET IDENTITY_INSERT nv_estados OFF
 
+SET IDENTITY_INSERT nv_ciudades ON
 INSERT INTO nv_ciudades (ciudadId, estadoId, nombreCiudad, coordenadas)
 VALUES (1, 1, 'San José Centro', geography::Point(9.9281, -84.0907, 4326))
+SET IDENTITY_INSERT nv_ciudades OFF
 
+SET IDENTITY_INSERT clientes ON
 INSERT INTO clientes (clienteId, tipoClienteId, estadoClienteId, nombreEmpresa, nombreContacto, apellidoContacto, creadoPor)
 VALUES (1, 1, 1, 'TechCorp SA', 'María', 'González', 1)
+SET IDENTITY_INSERT clientes OFF
 
+-- Interacciones (no necesita leadId para este demo)
 INSERT INTO interacciones (clienteId, tipoInteraccionId, canalId, usuarioId, fechaInteraccion, duracionMinutos, puntajeSentimiento, estaCompletada)
 VALUES 
     (1, 1, 1, 1, DATEADD(DAY, -30, GETDATE()), 15, 0.8, 1),
@@ -70,6 +99,7 @@ VALUES
 
 -- Crear leads asociados al cliente
 DECLARE @leadId1 INT, @leadId2 INT
+
 INSERT INTO leads (clienteId, fuenteLeadId, estadoLeadId, puntajeLead, utmCampaign, creadoPor)
 VALUES (1, 1, 1, 75, 'campaign_test_2024', 1)
 SET @leadId1 = SCOPE_IDENTITY()
@@ -89,7 +119,6 @@ GO
 
 ----------- ESCENARIO CON PROBLEMA - DIRTY READ -------------
 -- Actualización de métricas de cliente con nivel de aislamiento bajo
-
 
 CREATE OR ALTER PROCEDURE sp_RecalcularMetricasCliente_ConProblema
     @clienteId INT
@@ -205,15 +234,11 @@ BEGIN
         valorTotalConversiones,
         puntajeEngagement,
         fechaSnapshot,
-        '⚠️ DIRTY READ - Puede contener datos NO CONFIRMADOS' AS advertencia
+        'DIRTY READ - Puede contener datos NO CONFIRMADOS' AS advertencia
     FROM snapshots_metricas_cliente
     WHERE clienteId = @clienteId
     ORDER BY fechaSnapshot DESC
 END
-GO
-
--- Limpiar snapshots previos para demostración limpia
-DELETE FROM snapshots_metricas_cliente WHERE clienteId = 1
 GO
 
 ----------- VERSIÓN CORREGIDA - SIN DIRTY READ ----------------
@@ -335,11 +360,22 @@ BEGIN
     FROM snapshots_metricas_cliente WITH (READCOMMITTED)
     WHERE clienteId = @clienteId
     ORDER BY fechaSnapshot DESC
+    
+    IF @@ROWCOUNT = 0
+
 END
-GO
+
 
 
 /*
+
+--------------------------- INSTRUCCIONES PARA DEMOSTRAR DIRTY READ ---------------------------
+
+-------------- PROBLEMA - DIRTY READ --------------
+
+DELETE FROM snapshots_metricas_cliente WHERE clienteId = 1
+GO
+
 Abrir DOS Ventanas de Query en SSMS
 
 VENTANA 1 (Sesión que modifica datos)
@@ -350,7 +386,12 @@ INMEDIATAMENTE después de ejecutar Ventana 1 mientras espera
 EXEC sp_GenerarReporteCliente_ConProblema @clienteId = 1
 
 
+-------------- SIN DIRTY READ --------------
 
+DELETE FROM snapshots_metricas_cliente WHERE clienteId = 1
+GO
+
+Abrir DOS Ventanas de Query en SSMS
 
 VENTANA 1 (Sesión que modifica datos)
 EXEC sp_RecalcularMetricasCliente_Corregido @clienteId = 1
@@ -361,8 +402,7 @@ INMEDIATAMENTE después de ejecutar Ventana 1 mientras espera
 EXEC sp_GenerarReporteCliente_Corregido @clienteId = 1
 
 
-
-Para borrar los sp cvreados
+*/
 
 DROP PROCEDURE IF EXISTS sp_RecalcularMetricasCliente_ConProblema
 DROP PROCEDURE IF EXISTS sp_GenerarReporteCliente_ConProblema
@@ -370,7 +410,8 @@ DROP PROCEDURE IF EXISTS sp_RecalcularMetricasCliente_Corregido
 DROP PROCEDURE IF EXISTS sp_GenerarReporteCliente_Corregido
 
 DELETE FROM snapshots_metricas_cliente WHERE clienteId = 1
+DELETE FROM conversiones_lead WHERE clienteId = 1
+DELETE FROM leads WHERE clienteId = 1
 DELETE FROM interacciones WHERE clienteId = 1
 DELETE FROM clientes WHERE clienteId = 1
 
-*/
