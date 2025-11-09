@@ -1,0 +1,153 @@
+# Basic Kubernetes Deployment for Entregable 2 Demo
+# Archivo mínimo para demostrar que funciona el deployment
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: promptsales
+
+---
+# PostgreSQL (PromptSales)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptsales-postgres
+  namespace: promptsales
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promptsales-postgres
+  template:
+    metadata:
+      labels:
+        app: promptsales-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_DB
+          value: "PromptSales"
+        - name: POSTGRES_USER
+          value: "admin"
+        - name: POSTGRES_PASSWORD
+          value: "PromptSales2024"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+
+---
+# MongoDB (PromptContent) 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptcontent-mongo
+  namespace: promptsales
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promptcontent-mongo
+  template:
+    metadata:
+      labels:
+        app: promptcontent-mongo
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6
+        env:
+        - name: MONGO_INITDB_DATABASE
+          value: "PromptContent"
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongo-storage
+          mountPath: /data/db
+      volumes:
+      - name: mongo-storage
+        emptyDir: {}
+
+---
+# N8N ETL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-etl
+  namespace: promptsales
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n-etl
+  template:
+    metadata:
+      labels:
+        app: n8n-etl
+    spec:
+      containers:
+      - name: n8n
+        image: n8nio/n8n:latest
+        env:
+        - name: N8N_BASIC_AUTH_ACTIVE
+          value: "true"
+        - name: N8N_BASIC_AUTH_USER
+          value: "admin"
+        - name: N8N_BASIC_AUTH_PASSWORD
+          value: "admin123"
+        ports:
+        - containerPort: 5678
+        volumeMounts:
+        - name: n8n-data
+          mountPath: /home/node/.n8n
+      volumes:
+      - name: n8n-data
+        emptyDir: {}
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptsales-postgres
+  namespace: promptsales
+spec:
+  selector:
+    app: promptsales-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptcontent-mongo
+  namespace: promptsales
+spec:
+  selector:
+    app: promptcontent-mongo
+  ports:
+  - port: 27017
+    targetPort: 27017
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-etl
+  namespace: promptsales
+spec:
+  type: NodePort
+  selector:
+    app: n8n-etl
+  ports:
+  - port: 5678
+    targetPort: 5678
+    nodePort: 30678

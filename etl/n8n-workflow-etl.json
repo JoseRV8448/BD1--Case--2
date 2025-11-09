@@ -1,0 +1,386 @@
+{
+  "name": "PromptSales ETL Pipeline - Every 11 Minutes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 11
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger - 11 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 3,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "find",
+        "collection": "contenido_generado",
+        "query": "={\"updated_at\": {\"$gte\": \"{{$json[\"lastWatermark\"]}}\"}}",
+        "limit": 100
+      },
+      "id": "mongo-promptcontent",
+      "name": "MongoDB - PromptContent",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [620, 200],
+      "credentials": {
+        "mongoDb": {
+          "id": "1",
+          "name": "MongoDB PromptContent"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM vw_ADS_Campaign_Summary_ETL WHERE updatedAt > @lastWatermark",
+        "additionalFields": {
+          "queryParameters": [
+            {
+              "name": "lastWatermark",
+              "value": "={{$json[\"lastWatermark\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "sql-promptads",
+      "name": "SQL Server - PromptAds",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1,
+      "position": [620, 350],
+      "credentials": {
+        "microsoftSql": {
+          "id": "2",
+          "name": "SQL Server PromptAds"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM vw_CRM_Campaign_Sales_ETL WHERE updatedAt > @lastWatermark",
+        "additionalFields": {
+          "queryParameters": [
+            {
+              "name": "lastWatermark",
+              "value": "={{$json[\"lastWatermark\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "sql-promptcrm",
+      "name": "SQL Server - PromptCRM",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1,
+      "position": [620, 500],
+      "credentials": {
+        "microsoftSql": {
+          "id": "3",
+          "name": "SQL Server PromptCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT meta.start_run() as run_id"
+      },
+      "id": "postgres-start",
+      "name": "PostgreSQL - Start ETL Run",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT meta.get_watermarks() as watermarks"
+      },
+      "id": "postgres-watermarks",
+      "name": "PostgreSQL - Get Watermarks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [420, 400],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [820, 350]
+    },
+    {
+      "parameters": {
+        "content": "## Transform MongoDB Data\n\nAgregar campaign_id, approved_msgs, assets_used",
+        "height": 80,
+        "width": 250
+      },
+      "id": "note-transform",
+      "name": "Transform Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [800, 150]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO snap.ads_campaign_summary (campaign_id, business_id, name, starts_at, ends_at, impressions, reach, clicks, conversions, likes, comments, shares, saves, revenue_usd, cost_usd, roi_ads_only, ctr, cvr, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) ON CONFLICT (campaign_id) DO UPDATE SET impressions = EXCLUDED.impressions, reach = EXCLUDED.reach, clicks = EXCLUDED.clicks, conversions = EXCLUDED.conversions, likes = EXCLUDED.likes, comments = EXCLUDED.comments, shares = EXCLUDED.shares, saves = EXCLUDED.saves, revenue_usd = EXCLUDED.revenue_usd, cost_usd = EXCLUDED.cost_usd, roi_ads_only = EXCLUDED.roi_ads_only, ctr = EXCLUDED.ctr, cvr = EXCLUDED.cvr, updated_at = EXCLUDED.updated_at",
+        "options": {
+          "queryBatching": "all"
+        }
+      },
+      "id": "postgres-insert-ads",
+      "name": "PostgreSQL - Insert Ads Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1020, 350],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO snap.crm_campaign_sales (campaign_id, customers_reached, orders, net_revenue_usd, updated_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (campaign_id) DO UPDATE SET customers_reached = EXCLUDED.customers_reached, orders = EXCLUDED.orders, net_revenue_usd = EXCLUDED.net_revenue_usd, updated_at = EXCLUDED.updated_at",
+        "options": {
+          "queryBatching": "all"
+        }
+      },
+      "id": "postgres-insert-crm",
+      "name": "PostgreSQL - Insert CRM Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1020, 450],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT dw.rebuild_campaign_overview()"
+      },
+      "id": "postgres-rebuild",
+      "name": "PostgreSQL - Rebuild Overview",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1220, 350],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT meta.bump_watermark('promptads.campaign_summary'), meta.bump_watermark('promptcrm.campaign_sales'), meta.bump_watermark('promptcontent.campaign_msgs')"
+      },
+      "id": "postgres-update-watermarks",
+      "name": "PostgreSQL - Update Watermarks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1420, 350],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT meta.end_run_ok({{$json[\"run_id\"]}})"
+      },
+      "id": "postgres-end",
+      "name": "PostgreSQL - End ETL Run",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1620, 350],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL PromptSales"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "postgres-start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-start": {
+      "main": [
+        [
+          {
+            "node": "postgres-watermarks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-watermarks": {
+      "main": [
+        [
+          {
+            "node": "mongo-promptcontent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "sql-promptads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "sql-promptcrm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mongo-promptcontent": {
+      "main": [
+        [
+          {
+            "node": "merge-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sql-promptads": {
+      "main": [
+        [
+          {
+            "node": "merge-data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "sql-promptcrm": {
+      "main": [
+        [
+          {
+            "node": "merge-data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "merge-data": {
+      "main": [
+        [
+          {
+            "node": "postgres-insert-ads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "postgres-insert-crm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-insert-ads": {
+      "main": [
+        [
+          {
+            "node": "postgres-rebuild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-insert-crm": {
+      "main": [
+        [
+          {
+            "node": "postgres-rebuild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-rebuild": {
+      "main": [
+        [
+          {
+            "node": "postgres-update-watermarks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-update-watermarks": {
+      "main": [
+        [
+          {
+            "node": "postgres-end",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-09T00:00:00.000Z",
+  "versionId": "promptsales-etl-v1"
+}

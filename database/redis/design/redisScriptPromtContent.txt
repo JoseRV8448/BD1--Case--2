@@ -1,0 +1,100 @@
+Diseño de promtContent de mongo
+------------------------------ 
+. CACHÉ DE CONTENIDO GENERADO
+redis
+
+-----------------------------------
+1. CACHÉ DE LLAMADAS MCP SERVERS
+redis
+# Resultados de herramientas MCP
+mcp:tool:{server}:{tool}:{params_hash}
+  Tipo: Hash
+  TTL: 1800 (30 minutos)
+  Campos:
+    result: "[{\"id\": \"...\", \"score\": 0.95}]"  # JSON string
+    timestamp: "2025-01-15T10:30:00Z"
+    tokens_used: "410"
+    cost_usd: "0.0041"
+    segmento: "Costa Rica_28-40_masculino"
+
+# Estado de servidores MCP
+mcp:server:status:{server_name}
+  Tipo: Hash
+  TTL: 300 (5 minutos - auto-refresh)
+  Campos:
+    status: "active"
+    last_health_check: "2025-01-15T10:29:00Z"
+    requests_last_min: "45"
+    avg_response_time: "350"
+    errors_last_hour: "2"
+--------------------------------------------------------------------
+ 2. CACHÉ DE GENERACIONES AI (TOKEN OPTIMIZATION)
+redis
+# Generaciones de mensajes por segmento
+ai:campaign_messages:{campana_id}:{segmento_hash}
+  Tipo: List (mensajes ordenados)
+  TTL: 10800 (3 horas)
+  Miembros:
+    '{"numero":1,"texto":"Domina Arenal...","tono":"profesional"}'
+    '{"numero":2,"texto":"¿Trail en Chirripó...","tono":"casual"}'
+    '{"numero":3,"texto":"Tu próximo récord...","tono":"motivacional"}'
+
+# Metadata de generación
+ai:generation:meta:{campana_id}:{segmento_hash}
+  Tipo: Hash
+  TTL: 10800 (3 horas)
+  Campos:
+    tokens_total: "1240"
+    cost_total_usd: "0.0124"
+    tiempo_total_ms: "13150"
+    segmentos_procesados: "3"
+    fecha_generacion: "2025-01-15T10:20:00Z"
+
+-----------------------------------------------------------
+3. CACHÉ DE CONFIGURACIÓN Y METADATA
+redis
+# Configuración de integraciones API
+config:api:{provider_name}
+  Tipo: Hash
+  TTL: 3600 (1 hora - refresh manual)
+  Campos:
+    status: "active"
+    rate_limit: "500/minuto"
+    endpoints: "[{\"servicio\":\"image_generation\",\"modelos\":[\"dall-e-3\"]}]"
+    last_updated: "2025-01-10T09:00:00Z"
+
+# Permisos y límites por cliente MCP
+config:client:{client_name}
+  Tipo: Hash
+  TTL: 3600 (1 hora)
+  Campos:
+    tools_acceso: "[\"getContent\",\"generateCampaignMessages\"]"
+    rate_limit: "500/minuto"
+    max_requests_hora: "20000"
+    estado: "activo"
+---------------------------------------------------------------------------------------
+4. CACHÉ DE ESTADOS Y SINCRONIZACIÓN
+redis
+# Control de deltas para ETL
+etl:last_sync:{collection}
+  Tipo: Hash
+  TTL: 1320 (22 minutos - 2x ciclo ETL)
+  Campos:
+    last_id: "ObjectId('507f1f77bcf86cd799439011')"
+    last_timestamp: "2025-01-15T10:30:00Z"
+    records_processed: "156"
+    sync_duration_ms: "2450"
+
+# Locks para procesamiento concurrente
+lock:content_generation:{campana_id}
+  Tipo: String
+  TTL: 30 (30 segundos - lock de procesamiento)
+  Valor: "process_id_123"
+
+Colas de procesamiento asíncrono
+queue:ai_generation:{priority}
+  Tipo: List
+  TTL: none (persistente)
+  Miembros:
+    '{"campana_id":"camp_2025_tech","segmento":"CR_28-40_M"}'
+    '{"campana_id":"camp_2025_fitness","segmento":"CR_22-30_F"}'
