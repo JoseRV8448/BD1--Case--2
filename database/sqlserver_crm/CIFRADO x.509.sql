@@ -1,379 +1,99 @@
-------------------- CREAR MASTER KEY EN LA BASE DE DATOS -------------------
-
--- La Master Key es la clave principal solo se crea UNA VEZ por base de datos
+-- ============================================================================
+-- CIFRADO X.509 para PromptCRM - VERSI脫N SIMPLIFICADA
+-- Autor: Equipo PromptSales
+-- Solo lo esencial pedido en el enunciado
+-- ============================================================================
 
 USE PromptCRM;
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMasterKey##')
+-- 1. CREAR MASTER KEY
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'PromptCRM_Key2024!';
+GO
+
+-- 2. CREAR CERTIFICADO
+CREATE CERTIFICATE CertificadoPromptCRM
+WITH SUBJECT = 'Certificado para cifrado de identificaciones',
+     EXPIRY_DATE = '2030-12-31';
+GO
+
+-- 3. CREAR SYMMETRIC KEY
+CREATE SYMMETRIC KEY SymKey_ClienteData
+WITH ALGORITHM = AES_256
+ENCRYPTION BY CERTIFICATE CertificadoPromptCRM;
+GO
+
+-- 4. FUNCIONES PARA CIFRAR/DESCIFRAR
+-- Funci贸n para cifrar (usada al insertar)
+CREATE OR ALTER FUNCTION fn_CifrarIdentificacion
+(
+    @identificacion NVARCHAR(50)
+)
+RETURNS VARBINARY(256)
+AS
 BEGIN
-    CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'DatabaseKey_PromptCRM_2024!Strong';
-    SELECT 'Master Key creada exitosamente' AS Resultado;
-END
-ELSE
-BEGIN
-    SELECT 'Master Key ya existe - No se requiere acci髇' AS Resultado;
+    RETURN EncryptByPassPhrase('PromptCRM_Pass_2024!', @identificacion)
 END
 GO
 
-------------------- CREAR CERTIFICADO -------------------
-
--- El certificado tiene fecha de expiraci髇 y se puede hacer backup
-
-IF NOT EXISTS (SELECT * FROM sys.certificates WHERE name = 'CertificadoPromptCRM')
+-- Funci贸n para descifrar (usada al consultar)
+CREATE OR ALTER FUNCTION fn_DescifrarIdentificacion
+(
+    @identificacionCifrada VARBINARY(256)
+)
+RETURNS NVARCHAR(50)
+AS
 BEGIN
-    CREATE CERTIFICATE CertificadoPromptCRM
-    WITH SUBJECT = 'Certificado para cifrado de datos sensibles PromptCRM',
-         EXPIRY_DATE = '2030-12-31';
-    
-    SELECT 'Certificado creado exitosamente' AS Resultado;
-END
-ELSE
-BEGIN
-    SELECT 'Certificado ya existe - No se requiere acci髇' AS Resultado;
+    RETURN CONVERT(NVARCHAR(50), DecryptByPassPhrase('PromptCRM_Pass_2024!', @identificacionCifrada))
 END
 GO
 
-------------------- HACER BACKUP DEL CERTIFICADO -------------------
-
--- DEBES hacer backup del certificado para poder restaurar la base de datos en otro servidor
-
--- 1. Crear carpeta: C:\Backups\Certificados (o cambiar la ruta)
--- 2. Ejecutar este comando (ajusta las rutas seg鷑 tu servidor):
-
-BACKUP CERTIFICATE CertificadoPromptCRM
-TO FILE = 'C:\Backups\Certificados\CertificadoPromptCRM.cer'
-WITH PRIVATE KEY (
-    FILE = 'C:\Backups\Certificados\CertificadoPromptCRM.pvk',
-    ENCRYPTION BY PASSWORD = 'CertPrivateKey_2024!Secure'
+-- 5. EJEMPLO DE USO CON INSERT
+-- Al insertar un cliente:
+INSERT INTO clientes (
+    tipoClienteId, 
+    estadoClienteId, 
+    identificacionEncrypted,  -- Campo cifrado
+    nombreEmpresa, 
+    nombreContacto, 
+    apellidoContacto, 
+    creadoPor
+)
+VALUES (
+    1, 
+    1, 
+    dbo.fn_CifrarIdentificacion('123-4567890-1'), -- Usar funci贸n al insertar
+    'Empresa Demo SA', 
+    'Juan', 
+    'P茅rez', 
+    1
 );
 
---		Esto archivos se deben guardar ya que sin estos no se puede descifrar los datos despues de un restore
---    - CertificadoPromptCRM.cer (certificado p鷅lico)
---    - CertificadoPromptCRM.pvk (clave privada - SECRETO!)
-
-
-GO
-
-------------------- CREAR SYMMETRIC KEY -------------------
-
--- Esta clave se usa para cifrar/descifrar los datos reales
-
-IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE name = 'SymKey_ClienteData')
-BEGIN
-    CREATE SYMMETRIC KEY SymKey_ClienteData
-    WITH ALGORITHM = AES_256
-    ENCRYPTION BY CERTIFICATE CertificadoPromptCRM;
-    
-    SELECT 'Symmetric Key creada exitosamente' AS Resultado;
-END
-ELSE
-BEGIN
-    SELECT 'Symmetric Key ya existe - No se requiere acci髇' AS Resultado;
-END
-GO
-
-------------------- STORED PROCEDURES PARA CIFRAR/DESCIFRAR -------------------
-
--- No podemos usar funciones porque OPEN/CLOSE SYMMETRIC KEY
--- no est醤 permitidos en funciones. Usamos SPs en su lugar.
-
--- SP: Cifrar una identificaci髇
-CREATE OR ALTER PROCEDURE sp_CifrarIdentificacion
-    @identificacion NVARCHAR(50),
-    @encrypted VARBINARY(256) OUTPUT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    -- Abrir la clave sim閠rica
-    OPEN SYMMETRIC KEY SymKey_ClienteData
-    DECRYPTION BY CERTIFICATE CertificadoPromptCRM;
-    
-    -- Cifrar el dato
-    SET @encrypted = EncryptByKey(Key_GUID('SymKey_ClienteData'), @identificacion);
-    
-    -- Cerrar la clave
-    CLOSE SYMMETRIC KEY SymKey_ClienteData;
-END
-GO
-
--- SP: Descifrar una identificaci髇
-CREATE OR ALTER PROCEDURE sp_DescifrarIdentificacion
-    @encrypted VARBINARY(256),
-    @decrypted NVARCHAR(50) OUTPUT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    -- Abrir la clave sim閠rica
-    OPEN SYMMETRIC KEY SymKey_ClienteData
-    DECRYPTION BY CERTIFICATE CertificadoPromptCRM;
-    
-    -- Descifrar el dato
-    SET @decrypted = CAST(DecryptByKey(@encrypted) AS NVARCHAR(50));
-    
-    -- Cerrar la clave
-    CLOSE SYMMETRIC KEY SymKey_ClienteData;
-END
-GO
-
-------------------- STORED PROCEDURE PARA INSERTAR CLIENTES -------------------
-
--- Este SP cifra autom醫icamente la identificaci髇 antes de guardarla
-
-CREATE OR ALTER PROCEDURE sp_InsertarClienteConCifrado
-    @tipoClienteId INT,
-    @estadoClienteId INT,
-    @identificacion NVARCHAR(50),
-    @nombreEmpresa NVARCHAR(200) = NULL,
-    @nombreContacto NVARCHAR(100) = NULL,
-    @apellidoContacto NVARCHAR(100) = NULL,
-    @creadoPor INT,
-    @clienteId INT OUTPUT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        -- Cifrar la identificaci髇 usando el SP
-        DECLARE @identificacionCifrada VARBINARY(256);
-        EXEC sp_CifrarIdentificacion @identificacion, @identificacionCifrada OUTPUT;
-        
-        -- Insertar el cliente con la identificaci髇 cifrada
-        INSERT INTO clientes (
-            tipoClienteId, 
-            estadoClienteId, 
-            identificacionEncrypted,
-            nombreEmpresa, 
-            nombreContacto, 
-            apellidoContacto, 
-            creadoPor
-        )
-        VALUES (
-            @tipoClienteId, 
-            @estadoClienteId, 
-            @identificacionCifrada,
-            @nombreEmpresa, 
-            @nombreContacto, 
-            @apellidoContacto, 
-            @creadoPor
-        );
-        
-        -- Obtener el ID del cliente reci閚 creado
-        SET @clienteId = SCOPE_IDENTITY();
-        
-        SELECT 'Cliente insertado exitosamente con ID: ' + CAST(@clienteId AS VARCHAR(10)) AS Resultado;
-        
-        RETURN 0;
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-        RAISERROR(@ErrorMessage, 16, 1);
-        RETURN -1;
-    END CATCH
-END
-GO
-
--------------------STORED PROCEDURE PARA CONSULTAR CLIENTES -------------------
-
--- Este SP devuelve clientes con identificaciones descifradas
-
-CREATE OR ALTER PROCEDURE sp_ConsultarClientesConIdentificacion
-    @clienteId INT = NULL  -- NULL = traer todos
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    -- Crear tabla temporal para resultados
-    CREATE TABLE #ResultadosClientes (
-        clienteId INT,
-        tipoClienteId INT,
-        estadoClienteId INT,
-        nombreEmpresa NVARCHAR(200),
-        nombreContacto NVARCHAR(100),
-        apellidoContacto NVARCHAR(100),
-        identificacion NVARCHAR(50),
-        createdAt DATETIME2,
-        updatedAt DATETIME2
-    );
-    
-    -- Obtener clientes
-    DECLARE @currentClienteId INT;
-    DECLARE @encrypted VARBINARY(256);
-    DECLARE @decrypted NVARCHAR(50);
-    DECLARE @tipoClienteId INT;
-    DECLARE @estadoClienteId INT;
-    DECLARE @nombreEmpresa NVARCHAR(200);
-    DECLARE @nombreContacto NVARCHAR(100);
-    DECLARE @apellidoContacto NVARCHAR(100);
-    DECLARE @createdAt DATETIME2;
-    DECLARE @updatedAt DATETIME2;
-    
-    DECLARE cliente_cursor CURSOR FOR
-    SELECT clienteId, tipoClienteId, estadoClienteId, nombreEmpresa, 
-           nombreContacto, apellidoContacto, identificacionEncrypted,
-           createdAt, updatedAt
-    FROM clientes
-    WHERE deleted = 0 
-      AND identificacionEncrypted IS NOT NULL
-      AND (@clienteId IS NULL OR clienteId = @clienteId);
-    
-    OPEN cliente_cursor;
-    
-    FETCH NEXT FROM cliente_cursor INTO 
-        @currentClienteId, @tipoClienteId, @estadoClienteId, @nombreEmpresa,
-        @nombreContacto, @apellidoContacto, @encrypted, @createdAt, @updatedAt;
-    
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-        -- Descifrar la identificaci髇
-        EXEC sp_DescifrarIdentificacion @encrypted, @decrypted OUTPUT;
-        
-        -- Insertar en tabla temporal
-        INSERT INTO #ResultadosClientes
-        VALUES (@currentClienteId, @tipoClienteId, @estadoClienteId, 
-                @nombreEmpresa, @nombreContacto, @apellidoContacto,
-                @decrypted, @createdAt, @updatedAt);
-        
-        FETCH NEXT FROM cliente_cursor INTO 
-            @currentClienteId, @tipoClienteId, @estadoClienteId, @nombreEmpresa,
-            @nombreContacto, @apellidoContacto, @encrypted, @createdAt, @updatedAt;
-    END
-    
-    CLOSE cliente_cursor;
-    DEALLOCATE cliente_cursor;
-    
-    -- Devolver resultados
-    SELECT * FROM #ResultadosClientes ORDER BY clienteId;
-    
-    DROP TABLE #ResultadosClientes;
-END
-GO
-
-------------------- STORED PROCEDURE PARA ACTUALIZAR IDENTIFICACI覰 -------------------
-
-
-CREATE OR ALTER PROCEDURE sp_ActualizarIdentificacionCliente
-    @clienteId INT,
-    @nuevaIdentificacion NVARCHAR(50),
-    @modificadoPor INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        -- Cifrar la nueva identificaci髇
-        DECLARE @identificacionCifrada VARBINARY(256);
-        EXEC sp_CifrarIdentificacion @nuevaIdentificacion, @identificacionCifrada OUTPUT;
-        
-        -- Actualizar el cliente
-        UPDATE clientes
-        SET identificacionEncrypted = @identificacionCifrada,
-            modificadoPor = @modificadoPor,
-            updatedAt = GETDATE()
-        WHERE clienteId = @clienteId;
-        
-        IF @@ROWCOUNT > 0
-            SELECT 'Identificaci髇 actualizada exitosamente' AS Resultado;
-        ELSE
-            SELECT 'Cliente no encontrado' AS Resultado;
-        
-        RETURN 0;
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-        RAISERROR(@ErrorMessage, 16, 1);
-        RETURN -1;
-    END CATCH
-END
-GO
-
--- 
------------------------------------------------------- PRUEBAS Y DEMOSTRACI覰 ------------------------------------------------------
-
-
--- 1. Insertar un cliente de prueba con identificaci髇 cifrada
-DECLARE @nuevoClienteId INT;
-
-EXEC sp_InsertarClienteConCifrado
-    @tipoClienteId = 1,
-    @estadoClienteId = 1,
-    @identificacion = '123-4567890-1',
-    @nombreEmpresa = 'Empresa Demo SA',
-    @nombreContacto = 'Juan',
-    @apellidoContacto = 'P閞ez',
-    @creadoPor = 1,
-    @clienteId = @nuevoClienteId OUTPUT;
-GO
-
--- 2. Insertar otro cliente para tener m醩 datos
-DECLARE @nuevoClienteId INT;
-
-EXEC sp_InsertarClienteConCifrado
-    @tipoClienteId = 1,
-    @estadoClienteId = 1,
-    @identificacion = '999-8888888-9',
-    @nombreEmpresa = 'TechCorp Solutions',
-    @nombreContacto = 'Mar韆',
-    @apellidoContacto = 'Gonz醠ez',
-    @creadoPor = 1,
-    @clienteId = @nuevoClienteId OUTPUT;
-GO
-
--- 3. Ver la identificaci髇 CIFRADA (datos binarios)
-SELECT TOP 5
+-- 6. EJEMPLO DE USO CON SELECT
+-- Al consultar clientes con identificaci贸n descifrada:
+SELECT 
     clienteId,
+    tipoClienteId,
+    estadoClienteId,
+    dbo.fn_DescifrarIdentificacion(identificacionEncrypted) AS identificacion, -- Usar funci贸n al consultar
     nombreEmpresa,
-    identificacionEncrypted AS 'Identificaci髇 Cifrada (bytes)',
-    LEN(identificacionEncrypted) AS 'Tama駉 en bytes'
+    nombreContacto,
+    apellidoContacto,
+    createdAt
 FROM clientes
-WHERE identificacionEncrypted IS NOT NULL
-ORDER BY clienteId DESC;
-GO
+WHERE deleted = 0 
+  AND identificacionEncrypted IS NOT NULL;
 
--- 4. Ver la identificaci髇 DESCIFRADA (texto legible)
-EXEC sp_ConsultarClientesConIdentificacion;
-GO
+-- 7. EJEMPLO DE UPDATE
+-- Al actualizar una identificaci贸n:
+UPDATE clientes
+SET identificacionEncrypted = dbo.fn_CifrarIdentificacion('999-8888888-9'),
+    updatedAt = GETDATE()
+WHERE clienteId = 1;
 
--- 5. Consultar un cliente espec韋ico
-EXEC sp_ConsultarClientesConIdentificacion @clienteId = 1;
-GO
-
--- 6. Actualizar una identificaci髇
-EXEC sp_ActualizarIdentificacionCliente
-    @clienteId = 1,
-    @nuevaIdentificacion = '555-6666666-7',
-    @modificadoPor = 1;
-GO
-
--- 7. Verificar la actualizaci髇
-EXEC sp_ConsultarClientesConIdentificacion @clienteId = 1;
-GO
-
--- Estad韘ticas de clientes con identificaci髇 cifrada
+-- VERIFICACI脫N FINAL
 SELECT 
     COUNT(*) AS TotalClientes,
-    SUM(CASE WHEN identificacionEncrypted IS NOT NULL THEN 1 ELSE 0 END) AS ClientesCifrados,
-    CAST(SUM(CASE WHEN identificacionEncrypted IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*) 
-         AS DECIMAL(5,2)) AS PorcentajeCifrado
+    SUM(CASE WHEN identificacionEncrypted IS NOT NULL THEN 1 ELSE 0 END) AS ClientesCifrados
 FROM clientes
 WHERE deleted = 0;
-GO
-
-
-/*
--- Eliminar objetos de cifrado
-DROP PROCEDURE IF EXISTS sp_ConsultarClientesConIdentificacion;
-DROP PROCEDURE IF EXISTS sp_InsertarClienteConCifrado;
-DROP PROCEDURE IF EXISTS sp_ActualizarIdentificacionCliente;
-DROP PROCEDURE IF EXISTS sp_CifrarIdentificacion;
-DROP PROCEDURE IF EXISTS sp_DescifrarIdentificacion;
-
-DROP SYMMETRIC KEY IF EXISTS SymKey_ClienteData;
-DROP CERTIFICATE IF EXISTS CertificadoPromptCRM;
-DROP MASTER KEY;
-
--- Limpiar datos de prueba
-DELETE FROM clientes WHERE nombreEmpresa IN ('Empresa Demo SA', 'TechCorp Solutions');
-*/

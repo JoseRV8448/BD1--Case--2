@@ -1,5 +1,5 @@
-# Basic Kubernetes Deployment for Entregable 2 Demo
-# Archivo mínimo para demostrar que funciona el deployment
+# Kubernetes Deployment - PromptSales
+# Versión corregida: Sin N8N, con SQL Server
 
 apiVersion: v1
 kind: Namespace
@@ -7,32 +7,68 @@ metadata:
   name: promptsales
 
 ---
-# PostgreSQL (PromptSales)
+# SQL Server (PromptAds + PromptCRM)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: promptsales-postgres
+  name: sqlserver
   namespace: promptsales
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: promptsales-postgres
+      app: sqlserver
   template:
     metadata:
       labels:
-        app: promptsales-postgres
+        app: sqlserver
+    spec:
+      containers:
+      - name: sqlserver
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+        - name: ACCEPT_EULA
+          value: "Y"
+        - name: SA_PASSWORD
+          value: "PromptSales2024!"
+        - name: MSSQL_PID
+          value: "Developer"
+        ports:
+        - containerPort: 1433
+        volumeMounts:
+        - name: mssql-storage
+          mountPath: /var/opt/mssql
+      volumes:
+      - name: mssql-storage
+        emptyDir: {}
+
+---
+# PostgreSQL (PromptSales DW)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-dw
+  namespace: promptsales
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-dw
+  template:
+    metadata:
+      labels:
+        app: postgres-dw
     spec:
       containers:
       - name: postgres
         image: postgres:15
         env:
         - name: POSTGRES_DB
-          value: "PromptSales"
+          value: "PromptSales_DW"
         - name: POSTGRES_USER
           value: "admin"
         - name: POSTGRES_PASSWORD
-          value: "PromptSales2024"
+          value: "PromptSales2024!"
         ports:
         - containerPort: 5432
         volumeMounts:
@@ -43,21 +79,21 @@ spec:
         emptyDir: {}
 
 ---
-# MongoDB (PromptContent) 
+# MongoDB (PromptContent)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: promptcontent-mongo
+  name: mongodb
   namespace: promptsales
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: promptcontent-mongo
+      app: mongodb
   template:
     metadata:
       labels:
-        app: promptcontent-mongo
+        app: mongodb
     spec:
       containers:
       - name: mongodb
@@ -65,6 +101,10 @@ spec:
         env:
         - name: MONGO_INITDB_DATABASE
           value: "PromptContent"
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "admin"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "PromptContent2024!"
         ports:
         - containerPort: 27017
         volumeMounts:
@@ -75,39 +115,32 @@ spec:
         emptyDir: {}
 
 ---
-# N8N ETL
+# Redis Cache
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: n8n-etl
+  name: redis-cache
   namespace: promptsales
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: n8n-etl
+      app: redis-cache
   template:
     metadata:
       labels:
-        app: n8n-etl
+        app: redis-cache
     spec:
       containers:
-      - name: n8n
-        image: n8nio/n8n:latest
-        env:
-        - name: N8N_BASIC_AUTH_ACTIVE
-          value: "true"
-        - name: N8N_BASIC_AUTH_USER
-          value: "admin"
-        - name: N8N_BASIC_AUTH_PASSWORD
-          value: "admin123"
+      - name: redis
+        image: redis:7-alpine
         ports:
-        - containerPort: 5678
+        - containerPort: 6379
         volumeMounts:
-        - name: n8n-data
-          mountPath: /home/node/.n8n
+        - name: redis-storage
+          mountPath: /data
       volumes:
-      - name: n8n-data
+      - name: redis-storage
         emptyDir: {}
 
 ---
@@ -115,39 +148,84 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: promptsales-postgres
+  name: sqlserver
   namespace: promptsales
 spec:
   selector:
-    app: promptsales-postgres
+    app: sqlserver
+  ports:
+  - port: 1433
+    targetPort: 1433
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-dw
+  namespace: promptsales
+spec:
+  selector:
+    app: postgres-dw
   ports:
   - port: 5432
     targetPort: 5432
+  type: ClusterIP
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: promptcontent-mongo
+  name: mongodb
   namespace: promptsales
 spec:
   selector:
-    app: promptcontent-mongo
+    app: mongodb
   ports:
   - port: 27017
     targetPort: 27017
+  type: ClusterIP
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: n8n-etl
+  name: redis-cache
   namespace: promptsales
 spec:
-  type: NodePort
   selector:
-    app: n8n-etl
+    app: redis-cache
   ports:
-  - port: 5678
-    targetPort: 5678
-    nodePort: 30678
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+# ConfigMap para scripts de inicialización
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-init-scripts
+  namespace: promptsales
+data:
+  init-sqlserver.sql: |
+    -- Crear bases de datos
+    CREATE DATABASE PromptAds;
+    CREATE DATABASE PromptCRM;
+    CREATE DATABASE PromptSales_DW;
+    GO
+    
+    -- Configurar Linked Servers después
+    USE PromptCRM;
+    EXEC sp_addlinkedserver 
+        @server = 'PROMPTADS_LINK',
+        @srvproduct = '',
+        @provider = 'SQLNCLI',
+        @datasrc = 'sqlserver.promptsales.svc.cluster.local';
+    GO
+    
+  init-postgres.sql: |
+    -- Crear esquemas para DW
+    CREATE SCHEMA staging;
+    CREATE SCHEMA dw;
+    CREATE SCHEMA etl;
